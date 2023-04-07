@@ -1,7 +1,7 @@
 import java.util.*
 
 plugins {
-    kotlin("multiplatform") version "1.6.20"
+    kotlin("multiplatform") version "1.8.20"
     id("dev.petuska.npm.publish") version "2.1.1"
     id("maven-publish")
 }
@@ -30,88 +30,52 @@ repositories {
             password = localProperties["github.token"] as String? ?: System.getenv("GITHUB_TOKEN")
         }
     }
-    jcenter()
 }
-enum class Platforms {
-    JVM, JS
-
-}
-
-val platforms = listOf(Platforms.JVM, Platforms.JS)
-
 
 kotlin {
 
+    js(IR) {
+        compilations.all {
+            kotlinOptions.moduleKind = "commonjs"
+        }
 
-    if (Platforms.JVM in platforms) {
-        jvm {
-            compilations.all {
-                kotlinOptions.jvmTarget = "1.8"
-            }
-            withJava()
-            testRuns["test"].executionTask.configure {
-                useJUnitPlatform()
+        useCommonJs()
+        nodejs {
+            testTask {
+                // debug=true
             }
         }
-    }
-    if (Platforms.JS in platforms) {
-        js(IR) {
-            compilations.all {
-                kotlinOptions.moduleKind = "commonjs"
-            }
-
-            useCommonJs()
-            nodejs {
-                testTask {
-                    // debug=true
-                }
-            }
-
-            binaries.library()
-        }
+        generateTypeScriptDefinitions()
+        binaries.library()
     }
 
 
     sourceSets {
-        val coroutinesVersion = "1.6.0"
-
         val commonMain by getting {
             dependencies {
                 implementation(kotlin("stdlib-common"))
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
+                implementation(libs.kotlin.coroutines.core)
+
 
             }
         }
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
+                implementation(libs.kotlin.coroutines.test)
             }
         }
-        if (Platforms.JVM in platforms) {
-            val jvmMain by getting {
-                dependencies {
-                    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:$coroutinesVersion")
-                }
+        val jsMain by getting {
+            dependencies {
+                implementation(libs.sqldelight.runtime.js)
+                implementation(libs.sqldelight.async.extensions.js)
+                implementation(npm("sqlite3", libs.versions.node.sqlite3.get(), false))
             }
-            val jvmTest by getting
-
         }
-        if (Platforms.JS in platforms) {
-            val jsMain by getting {
-                dependencies {
-                    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-js:$coroutinesVersion")
-                    implementation("org.jetbrains.kotlinx:kotlinx-nodejs:0.0.7")
-//              implementation(npm("@types/node", "16.11.7", generateExternals = true)) // in future when it would work
-                }
-            }
-
-            val jsTest by getting
-        }
+        val jsTest by getting
 
         val publicationsFromMainHost =
-            listOf(jvm(), js()).map { it.name } + "kotlinMultiplatform"
+            listOf(js()).map { it.name } + "kotlinMultiplatform"
 
 
         publishing {
@@ -138,12 +102,15 @@ kotlin {
         }
     }
 
-
+    plugins.withType<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin> {
+        configure<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension> {
+            nodeVersion = "18.14.2"
+        }
+    }
 
     npmPublishing {
         organization = "wojta"
         access = RESTRICTED
-
 
         repositories {
             repository("npmjs") {
