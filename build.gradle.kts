@@ -120,4 +120,16 @@ kotlin {
             }
         }
     }
+
 }
+
+// workaround for missing sqlite3 bindings
+val bindingsInstall = tasks.register("sqlite3BindingsInstall") {
+    doLast {
+        println("sqlite3BindingsInstall")
+        exec {
+            
+        }
+    }
+}.get()
+bindingsInstall.mustRunAfter(tasks["kotlinNpmInstall"])
