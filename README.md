@@ -1,4 +1,6 @@
-# sqldelight-node-sqlite3-driver ![BUILD](https://github.com/github/docs/actions/workflows/build.yml/badge.svg)
+![BUILD](https://github.com/wojta/sqldelight-node-sqlite3-driver/actions/workflows/build.yml/badge.svg)
+
+# sqldelight-node-sqlite3-driver 
 Driver for library SQLDelight that supports sqlite3 Node.js module
 
 ## ⚠️ Work in progress
