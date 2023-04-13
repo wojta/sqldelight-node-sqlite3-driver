@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.targets.js.yarn.yarn
 import java.util.*
 
 plugins {
@@ -126,10 +127,14 @@ kotlin {
 // workaround for missing sqlite3 bindings
 val bindingsInstall = tasks.register("sqlite3BindingsInstall") {
     doLast {
-        println("sqlite3BindingsInstall")
-        exec {
-            
+        val sqlite3moduleDir = buildDir.resolve("js/node_modules/sqlite3")
+        if (!sqlite3moduleDir.resolve("lib/binding").exists()) {
+            exec {
+                workingDir = sqlite3moduleDir
+                val commandLine = yarn.yarnSetupTaskProvider.get().destination.absolutePath + "/bin/yarn"
+                commandLine(commandLine)
+            }
         }
     }
 }.get()
-bindingsInstall.mustRunAfter(tasks["kotlinNpmInstall"])
+tasks["kotlinNpmInstall"].finalizedBy(bindingsInstall)
