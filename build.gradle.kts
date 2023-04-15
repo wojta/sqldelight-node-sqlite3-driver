@@ -3,12 +3,15 @@ import java.util.*
 
 plugins {
     kotlin("multiplatform") version "1.8.20"
-    id("dev.petuska.npm.publish") version "2.1.1"
+    //id("dev.petuska.npm.publish") version "2.1.1"
+    id("org.jetbrains.dokka") version "1.8.10"
+    id("org.jetbrains.kotlinx.kover") version "0.6.1"
     id("maven-publish")
+    id("signing")
 }
 
 group = "cz.sazel.sqldelight"
-val versionBase = "0.0.1"
+val versionBase = "0.1.0"
 val localProperties = Properties().apply {
     try {
         load(project.rootProject.file("local.properties").inputStream())
@@ -17,7 +20,7 @@ val localProperties = Properties().apply {
     }
 }
 
-version = System.getenv("PACKAGE_VERSION") ?: localProperties["packageVersion"] as String? ?: "$versionBase-snapshot"
+version = System.getenv("PACKAGE_VERSION") ?: localProperties["packageVersion"] as String? ?: "$versionBase-SNAPSHOT"
 
 
 repositories {
@@ -73,11 +76,23 @@ kotlin {
                 implementation(npm("sqlite3", libs.versions.node.sqlite3.get(), false))
             }
         }
-        val jsTest by getting
+        val jsTest by getting {
+            kover {
+                htmlReport {
+                    onCheck.set(true)
+                }
+                isDisabled.set(false)
+            }
+        }
 
         val publicationsFromMainHost =
             listOf(js()).map { it.name } + "kotlinMultiplatform"
 
+        val javadocJar = tasks.register<Jar>("javadocJar") {
+            dependsOn(tasks.dokkaHtml)
+            archiveClassifier.set("javadoc")
+            from("$buildDir/dokka")
+        }
 
         publishing {
             publications {
@@ -87,7 +102,40 @@ kotlin {
                         .matching { it.publication == targetPublication }
                         .configureEach { onlyIf { findProperty("isMainHost") == "true" } }
                 }
+
+
+                withType<MavenPublication> {
+                    artifact(javadocJar)
+
+                    pom {
+                        name.set("node-sqlite3-driver")
+                        description.set("Driver for library SQLDelight that supports sqlite3 Node.js module")
+                        licenses {
+                            license {
+                                name.set("Apache-2.0")
+                                url.set("https://opensource.org/licenses/Apache-2.0")
+                            }
+                        }
+                        url.set("https://github.com/wojta/sqldelight-node-sqlite3-driver")
+                        issueManagement {
+                            system.set("Github")
+                            url.set("https://github.com/wojta/sqldelight-node-sqlite3-driver/issues")
+                        }
+                        scm {
+                            connection.set("https://github.com/wojta/sqldelight-node-sqlite3-driver.git")
+                            url.set("https://github.com/wojta/sqldelight-node-sqlite3-driver")
+                        }
+                        developers {
+                            developer {
+                                name.set("Vojtěch Sázel")
+                                email.set("sqldelight@sazel.cz")
+                            }
+                        }
+                    }
+                }
+
             }
+
             repositories {
                 maven {
                     name = "GitHubPackages"
@@ -99,9 +147,31 @@ kotlin {
                         password = localProperties["github.token"] as String? ?: System.getenv("GITHUB_TOKEN")
                     }
                 }
+                maven {
+                    val isSnapshot = version.toString().endsWith("SNAPSHOT")
+                    val destination = if (isSnapshot) {
+                        "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+                    } else "https://oss.sonatype.org/content/repositories/snapshots/"
+                    url = uri(destination)
+                    credentials {
+                        username = localProperties["sonatype.user"] as String? ?: System.getenv("SONATYPE_USER")
+                        password = localProperties["sonatype.password"] as String? ?: System.getenv("SONATYPE_PASSWORD")
+                    }
+                }
             }
         }
+        //val publishing = extensions.getByType<PublishingExtension>()
+        extensions.configure<SigningExtension> {
+            useInMemoryPgpKeys(
+                localProperties["gpg.keySecret"] as String? ?: System.getenv("GPG_KEY_SECRET"),
+                localProperties["gpg.keyPassword"] as String? ?: System.getenv("GPG_KEY_PASSWORD")
+            )
+
+            sign(publishing.publications)
+        }
     }
+
+
 
     plugins.withType<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin> {
         configure<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension> {
@@ -109,18 +179,18 @@ kotlin {
         }
     }
 
-    npmPublishing {
-        organization = "wojta"
-        access = RESTRICTED
-
-        repositories {
-            repository("npmjs") {
-                registry = uri("https://npm.pkg.github.com") // Registry to publish to
-                authToken = localProperties["github.token"] as String?
-                    ?: System.getenv("GITHUB_TOKEN")// NPM registry authentication token
-            }
-        }
-    }
+//    npmPublishing {
+//        organization = "wojta"
+//        access = RESTRICTED
+//
+//        repositories {
+//            repository("npmjs") {
+//                registry = uri("https://npm.pkg.github.com") // Registry to publish to
+//                authToken = localProperties["github.token"] as String?
+//                    ?: System.getenv("GITHUB_TOKEN")// NPM registry authentication token
+//            }
+//        }
+//    }
 
 }
 
@@ -138,3 +208,10 @@ val bindingsInstall = tasks.register("sqlite3BindingsInstall") {
     }
 }.get()
 tasks["kotlinNpmInstall"].finalizedBy(bindingsInstall)
+
+koverMerged {
+    htmlReport {
+        onCheck.set(true)
+    }
+    enable()
+}
