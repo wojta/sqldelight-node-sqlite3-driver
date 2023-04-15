@@ -19,7 +19,7 @@ private fun initSqlite3Database(
     filename: String, mode: Number = OPEN_CREATE.toInt() or OPEN_READWRITE.toInt()
 ): Sqlite3.Database = Sqlite3.Database(filename, mode)
 
-suspend fun SQLite3Driver.withSchema(schema: SqlSchema? = null) = this.also { schema?.create(it)?.await() }
+internal suspend fun SQLite3Driver.withSchema(schema: SqlSchema? = null) = this.also { schema?.create(it)?.await() }
 
 class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : SqlDriver {
     private val listeners = mutableMapOf<String, MutableSet<Query.Listener>>()
@@ -49,17 +49,13 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
 
     private fun createOrGetStatement(identifier: Int?, sql: String): Sqlite3.Statement {
         val res = if (identifier == null) {
-            println("prepare suspend identifier==null")
             db.prepare(sql)
         } else {
             statements.getOrPut(identifier) {
-                println("prepare suspend getOrPut($identifier)")
                 val res2 = db.prepare(sql)
-                println("prepare suspend getOrPut($identifier) end")
                 return@getOrPut res2
             }
 //                .apply {
-//                println("reset")
 //                reset()
 //            }
         }
@@ -74,10 +70,8 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
             val rows = suspendCoroutine { cont ->
                 statement.all { error, rows ->
                     if (error is Throwable) {
-                        println("resuming with exception")
                         cont.resumeWithException(error)
                     } else {
-                        println("rows")
                         cont.resume(rows)
                     }
                 }
@@ -89,10 +83,8 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
         }
 
     override fun execute(identifier: Int?, sql: String, parameters: Int, binders: (SqlPreparedStatement.() -> Unit)?): QueryResult<Long> = QueryResult.AsyncValue {
-        println("execute(\"$sql\")")
         val statement = createOrGetStatement(identifier, sql)
         statement.bind(parameters, binders)
-        println("execute bound")
         suspendCoroutine { cont ->
             val callback: (Any) -> Unit = { self ->
                 if (self is Throwable) {
@@ -103,7 +95,6 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
             }
             statement.run(callback)
         }
-        println("execute run")
         return@AsyncValue 0
     }
 
