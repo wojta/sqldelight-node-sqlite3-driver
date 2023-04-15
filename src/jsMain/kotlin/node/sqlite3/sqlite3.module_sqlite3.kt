@@ -104,17 +104,17 @@ external object Sqlite3 {
 
     var LIMIT_WORKER_THREADS: Number
 
-    object cached {
+    internal object cached {
         fun Database(filename: String, callback: (self: Database, err: Error?) -> Unit = definedExternally): Database
         fun Database(filename: String, mode: Number = definedExternally, callback: (self: Database, err: Error?) -> Unit = definedExternally): Database
     }
 
-    interface RunResult : Statement {
+    internal interface RunResult : Statement {
         var lastID: Number
         var changes: Number
     }
 
-    open class Statement : events.EventEmitter {
+    internal open class Statement : events.EventEmitter {
         open fun bind(params: Array<Any?>, callback: (self: Any?) -> Unit = definedExternally): Statement /* this */
 
         //        open fun bind(callback: (err: Error?) -> Unit = definedExternally): Statement /* this */
@@ -152,7 +152,7 @@ external object Sqlite3 {
         open fun each(params: Any, callback: (self: RunResult, err: Error?, row: Any) -> Unit = definedExternally): Statement /* this */
     }
 
-    open class Database : events.EventEmitter {
+    internal open class Database : events.EventEmitter {
         constructor(filename: String, callback: (err: Error?) -> Unit = definedExternally)
         constructor(filename: String)
         constructor(filename: String, mode: Number = definedExternally, callback: (err: Error?) -> Unit = definedExternally)

@@ -1,47 +1,35 @@
 @file:Suppress("INTERFACE_WITH_SUPERCLASS", "OVERRIDING_FINAL_MEMBER", "RETURN_TYPE_MISMATCH_ON_OVERRIDE", "CONFLICTING_OVERLOADS")
 package events
 
-import kotlin.js.*
-import org.khronos.webgl.*
-import org.w3c.dom.*
-import org.w3c.dom.events.*
-import org.w3c.dom.parsing.*
-import org.w3c.dom.svg.*
-import org.w3c.dom.url.*
-import org.w3c.fetch.*
-import org.w3c.files.*
-import org.w3c.notifications.*
-import org.w3c.performance.*
-import org.w3c.workers.*
-import org.w3c.xhr.*
+import kotlin.js.Promise
 
-external interface EventEmitterOptions {
+internal external interface EventEmitterOptions {
     var captureRejections: Boolean?
         get() = definedExternally
         set(value) = definedExternally
 }
 
-external interface NodeEventTarget {
+internal external interface NodeEventTarget {
     fun once(eventName: String, listener: (args: Any) -> Unit): NodeEventTarget /* this */
     fun once(eventName: Any, listener: (args: Any) -> Unit): NodeEventTarget /* this */
 }
 
-external interface `T$15` {
+internal external interface `T$15` {
     var once: Boolean
 }
 
-external interface DOMEventTarget {
+internal external interface DOMEventTarget {
     fun addEventListener(eventName: String, listener: (args: Any) -> Unit, opts: `T$15` = definedExternally): Any
 }
 
-external interface StaticEventEmitterOptions {
+internal external interface StaticEventEmitterOptions {
     var signal: Any?
         get() = definedExternally
         set(value) = definedExternally
 }
 
 @JsModule("node:events")
-external open class EventEmitter(options: EventEmitterOptions = definedExternally)  {
+internal open external class EventEmitter(options: EventEmitterOptions = definedExternally) {
     open fun addListener(eventName: String, listener: (args: Any) -> Unit): dynamic /* EventEmitter */
     open fun addListener(eventName: Any, listener: (args: Any) -> Unit): dynamic /* EventEmitter */
     open fun on(eventName: String, listener: (args: Any) -> Unit): dynamic /* EventEmitter */

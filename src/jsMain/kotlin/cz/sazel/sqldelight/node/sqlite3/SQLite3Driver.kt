@@ -3,13 +3,9 @@ package cz.sazel.sqldelight.node.sqlite3
 import app.cash.sqldelight.Query
 import app.cash.sqldelight.Transacter
 import app.cash.sqldelight.db.*
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.yield
 import node.sqlite3.Sqlite3
 import node.sqlite3.Sqlite3.OPEN_CREATE
 import node.sqlite3.Sqlite3.OPEN_READWRITE
-import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -17,15 +13,15 @@ import kotlin.coroutines.suspendCoroutine
 suspend fun initSqlite3SqlDriver(
     filename: String, mode: Number = OPEN_CREATE.toInt() or OPEN_READWRITE.toInt(),
     schema: SqlSchema? = null,
-): SqlDriver = SQLite3Driver(initSqlite3Database(filename, mode)).withSchema(schema)
+): SQLite3Driver = SQLite3Driver(initSqlite3Database(filename, mode)).withSchema(schema)
 
 private fun initSqlite3Database(
     filename: String, mode: Number = OPEN_CREATE.toInt() or OPEN_READWRITE.toInt()
 ): Sqlite3.Database = Sqlite3.Database(filename, mode)
 
-suspend fun SqlDriver.withSchema(schema: SqlSchema? = null): SqlDriver = this.also { schema?.create(it)?.await() }
+suspend fun SQLite3Driver.withSchema(schema: SqlSchema? = null) = this.also { schema?.create(it)?.await() }
 
-class SQLite3Driver(private val db: Sqlite3.Database) : SqlDriver {
+class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : SqlDriver {
     private val listeners = mutableMapOf<String, MutableSet<Query.Listener>>()
     private val statements = mutableMapOf<Int, Sqlite3.Statement>()
     private var transaction: Transacter.Transaction? = null
