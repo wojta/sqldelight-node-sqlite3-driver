@@ -71,7 +71,7 @@ Note: Please use `executeSuspendingAsList()` in queries instead of `executeAsLis
 
 
 ## Thanks
-To _Isuru Rajapakse_ and the project https://github.com/xxfast/KStore which is inspiration for the set-up of publishing in Gradle scripts. 
+To _Isuru Rajapakse_ and the project https://github.com/xxfast/KStore which is an inspiration for the set-up of publishing in Gradle scripts. 
 
 ## License
 Licensed under the Apache License, Version 2.0 (the "License");
