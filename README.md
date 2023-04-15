@@ -1,4 +1,4 @@
-![BUILD](https://github.com/wojta/sqldelight-node-sqlite3-driver/actions/workflows/build.yml/badge.svg)
+![BUILD](https://github.com/wojta/sqldelight-node-sqlite3-driver/actions/workflows/build.yml/badge.svg) [![stability-experimental](https://img.shields.io/badge/stability-experimental-orange.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#experimental)
 
 # sqldelight-node-sqlite3-driver 
 Driver for library [SQLDelight](https://github.com/cashapp/sqldelight) that supports [sqlite3](https://www.npmjs.com/package/sqlite3) Node.js module
