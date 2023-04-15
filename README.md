@@ -1,10 +1,73 @@
 ![BUILD](https://github.com/wojta/sqldelight-node-sqlite3-driver/actions/workflows/build.yml/badge.svg)
 
 # sqldelight-node-sqlite3-driver 
-Driver for library [SQLDelight](https://github.com/cashapp/sqldelight) that supports sqlite3 Node.js module
+Driver for library [SQLDelight](https://github.com/cashapp/sqldelight) that supports [sqlite3](https://www.npmjs.com/package/sqlite3) Node.js module
 
 ## ⚠️ Work in progress
-It's passing the tests. Work needs to be done to publish it as a package.
+It's passing the tests. Work needs to be done to publish it in public Maven repo.
+
+## Gradle set up 
+
+Pretty much it's almost same as with https://cashapp.github.io/sqldelight/2.0.0-alpha05/js_sqlite/
+
+```kotlin
+kotlin {
+    js {
+        binaries.executable()
+        nodejs {
+            dependencies {
+                implementation("cz.sazel.sqldelight:node-sqlite3-driver-js:0.1.2-SNAPSHOT")
+            }
+        }
+    }
+}
+```
+
+You'll also need to install binary bindings for SQLite3. This can be done by running special Gradle task.
+
+```kotlin
+val bindingsInstall = tasks.register("sqlite3BindingsInstall") {
+    doLast {
+        val sqlite3moduleDir = buildDir.resolve("js/node_modules/sqlite3")
+        if (!sqlite3moduleDir.resolve("lib/binding").exists()) {
+            exec {
+                workingDir = sqlite3moduleDir
+                val commandLine = "${yarn.yarnSetupTaskProvider.get().destination.absolutePath}/bin/yarn"
+                commandLine(commandLine)
+            }
+        }
+    }
+}.get()
+tasks["kotlinNpmInstall"].finalizedBy(bindingsInstall)
+```
+
+## Simple example
+
+Queries are written as here - https://cashapp.github.io/sqldelight/2.0.0-alpha05/js_sqlite/
+
+
+```kotlin
+suspend fun main() {
+    val driver = initSqlite3SqlDriver(filename = "test.db", schema = Database.Schema)
+
+    val database = Database(driver)
+
+    val playerQueries: PlayerQueries = database.playerQueries
+
+    println(playerQueries.selectAll().executeSuspendingAsList())
+    // Prints [HockeyPlayer(15, "Ryan Getzlaf")]
+
+    playerQueries.insert(player_number = 10, full_name = "Corey Perry")
+    println(playerQueries.selectAll().executeSuspendingAsList())
+    // Prints [HockeyPlayer(15, "Ryan Getzlaf"), HockeyPlayer(10, "Corey Perry")]
+
+    val player = HockeyPlayer(20, "Ronald McDonald")
+    playerQueries.insertFullPlayerObject(player)
+}
+```
+
+Note: Please use `executeSuspendingAsList()` in queries instead of `executeAsList()` as that API is not suspeding and will throw an exception with this driver.
+
 
 ## Thanks
 To _Isuru Rajapakse_ and the project https://github.com/xxfast/KStore which is inspiration for the set-up of publishing in Gradle scripts. 
