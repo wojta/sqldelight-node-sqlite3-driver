@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "cz.sazel.sqldelight"
-val versionBase = "0.1.1"
+val versionBase = "0.1.2"
 val localProperties = Properties().apply {
     try {
         load(project.rootProject.file("local.properties").inputStream())
