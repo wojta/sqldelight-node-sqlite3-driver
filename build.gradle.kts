@@ -109,7 +109,7 @@ kotlin {
 
                     pom {
                         name.set("node-sqlite3-driver")
-                        description.set("Driver for library SQLDelight that supports sqlite3 Node.js module")
+                        description.set("Driver for the library SQLDelight that supports sqlite3 Node.js module")
                         licenses {
                             license {
                                 name.set("Apache-2.0")
