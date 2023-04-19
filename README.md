@@ -1,10 +1,9 @@
 ![BUILD](https://github.com/wojta/sqldelight-node-sqlite3-driver/actions/workflows/build.yml/badge.svg) [![stability-experimental](https://img.shields.io/badge/stability-experimental-orange.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#experimental)
+[![Maven Central](https://img.shields.io/maven-central/v/cz.sazel.sqldelight/node-sqlite3-driver-js?color=blue)](https://search.maven.org/search?q=g:cz.sazel.sqldelight)
+
 
 # sqldelight-node-sqlite3-driver 
 Driver for the library [SQLDelight](https://github.com/cashapp/sqldelight) that supports [sqlite3](https://www.npmjs.com/package/sqlite3) Node.js module
-
-## ⚠️ Work in progress
-It's passing the tests. Work needs to be done to publish it in public Maven repo.
 
 ## Gradle set up 
 
