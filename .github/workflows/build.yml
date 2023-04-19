@@ -86,12 +86,14 @@ jobs:
         uses: gradle/gradle-build-action@v2
 
       - name: Generate docs with dokka
-        run: ./gradlew dokkaHtmlMultiModule
+        env:
+          PACKAGE_VERSION: ${{ github.event.release.tag_name }}
+        run: ./gradlew dokkaHtml
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
-          path: ${{ github.workspace }}/build/dokka/htmlMultiModule
+          path: ${{ github.workspace }}/build/dokka/html
 
       - name: Deploy to GitHub Pages
         id: deployment
