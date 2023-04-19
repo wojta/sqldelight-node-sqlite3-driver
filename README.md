@@ -9,6 +9,28 @@ Driver for the library [SQLDelight](https://github.com/cashapp/sqldelight) that 
 
 Pretty much it's almost the same as with https://cashapp.github.io/sqldelight/2.0.0-alpha05/js_sqlite/
 
+Initialization of SQLDelight is needed
+
+```kotlin
+plugins {
+    kotlin("js") version "1.8.0" // probably would work even with different one
+    id("app.cash.sqldelight") version "2.0.0-alpha05" // for version 0.1.x
+}
+፧
+፧
+፧
+sqldelight {
+    databases {
+        create("Database") {
+            packageName.set("com.example")
+            generateAsync.set(true) // required for this driver!
+        }
+    }
+}
+```
+
+Add dependency to the driver:
+
 ```kotlin
 kotlin {
     js {
