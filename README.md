@@ -8,7 +8,7 @@ It's passing the tests. Work needs to be done to publish it in public Maven repo
 
 ## Gradle set up 
 
-Pretty much it's almost same as with https://cashapp.github.io/sqldelight/2.0.0-alpha05/js_sqlite/
+Pretty much it's almost the same as with https://cashapp.github.io/sqldelight/2.0.0-alpha05/js_sqlite/
 
 ```kotlin
 kotlin {
@@ -67,11 +67,12 @@ suspend fun main() {
 }
 ```
 
-Note: Please use `executeSuspendingAsList()` in queries instead of `executeAsList()` as that API is not suspeding and will throw an exception with this driver.
+Note: Please use `executeSuspendingAsList()` in queries instead of `executeAsList()` as that API is not suspending and will throw an exception with this driver.
 
 
 ## Thanks
 To _Isuru Rajapakse_ and the project [KStore](https://github.com/xxfast/KStore) which is an inspiration for the set-up of publishing in Gradle scripts. 
+
 To authors of SQLDelight, implementation is based on the [sqljs](https://github.com/sql-js/sql.js/) implementation of the driver which is already included in the library.s.
 
 ## License
