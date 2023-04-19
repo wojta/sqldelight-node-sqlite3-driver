@@ -16,7 +16,7 @@ kotlin {
         binaries.executable()
         nodejs {
             dependencies {
-                implementation("cz.sazel.sqldelight:node-sqlite3-driver-js:0.1.2-SNAPSHOT")
+                implementation("cz.sazel.sqldelight:node-sqlite3-driver-js:0.1.3")
             }
         }
     }

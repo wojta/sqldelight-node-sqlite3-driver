@@ -17,13 +17,17 @@ val localProperties = Properties().apply {
     try {
         load(project.rootProject.file("local.properties").inputStream())
     } catch (e: java.io.IOException) {
-        println("Can't read local.properties, skipping")
+        System.err.println("Can't read local.properties, skipping")
     }
 }
 
 group = System.getenv("GROUP_ID") ?: localProperties["groupId"] as String? ?: defaultGroupId
-version = System.getenv("PACKAGE_VERSION") ?: localProperties["packageVersion"] as String? ?: "$versionBase-SNAPSHOT"
+var versionStr = System.getenv("PACKAGE_VERSION")?.trim()?.ifBlank { null }
+    ?: localProperties["packageVersion"] as String? ?: "$versionBase-SNAPSHOT"
+if (versionStr.startsWith("v")) versionStr = versionStr.substring(1)
+version = versionStr
 
+println("Package version $version")
 
 repositories {
     mavenCentral()
@@ -32,8 +36,8 @@ repositories {
         url = uri("https://maven.pkg.github.com/wojta/sqldelight-node-sqlite3-driver") // Github Package
         credentials {
             //Fetch these details from the properties file or from Environment variables
-            username = localProperties["github.user"] as String? ?: System.getenv("GITHUB_USER")
-            password = localProperties["github.token"] as String? ?: System.getenv("GITHUB_TOKEN")
+            username = System.getenv("GITHUB_USER") ?: localProperties["github.user"] as String?
+            password = System.getenv("GITHUB_TOKEN") ?: localProperties["github.token"] as String?
         }
     }
 }
@@ -139,34 +143,37 @@ kotlin {
             }
 
             repositories {
-                maven {
-                    name = "GitHubPackages"
-                    url = uri("https://maven.pkg.github.com/wojta/sqldelight-node-sqlite3-driver") // Github Package
+                val githubUserName = System.getenv("GITHUB_USER") ?: localProperties["github.user"] as String?
+                if (githubUserName != null) { // Github packages repo
+                    maven {
+                        name = "GitHubPackages"
+                        url = uri("https://maven.pkg.github.com/wojta/sqldelight-node-sqlite3-driver") // Github Package
 
-                    credentials {
-                        //Fetch these details from the properties file or from Environment variables
-                        username = localProperties["github.user"] as String? ?: System.getenv("GITHUB_USER")
-                        password = localProperties["github.token"] as String? ?: System.getenv("GITHUB_TOKEN")
+                        credentials {
+                            //Fetch these details from the properties file or from Environment variables
+                            username = githubUserName
+                            password = System.getenv("GITHUB_TOKEN") ?: localProperties["github.token"] as String?
+                        }
                     }
                 }
-                maven {
+                maven { // OSS Sonatype (default)
                     val isSnapshot = version.toString().endsWith("SNAPSHOT")
                     val destination = if (!isSnapshot) {
                         "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
                     } else "https://s01.oss.sonatype.org/content/repositories/snapshots"
                     url = uri(destination)
                     credentials {
-                        username = localProperties["sonatype.user"] as String? ?: System.getenv("SONATYPE_USER")
-                        password = localProperties["sonatype.password"] as String? ?: System.getenv("SONATYPE_PASSWORD")
+                        username = System.getenv("SONATYPE_USER") ?: localProperties["sonatype.user"] as String?
+                        password = System.getenv("SONATYPE_PASSWORD") ?: localProperties["sonatype.password"] as String?
                     }
                 }
             }
         }
-        //val publishing = extensions.getByType<PublishingExtension>()
+
         extensions.configure<SigningExtension> {
             useInMemoryPgpKeys(
-                localProperties["gpg.keySecret"] as String? ?: System.getenv("GPG_KEY_SECRET"),
-                localProperties["gpg.keyPassword"] as String? ?: System.getenv("GPG_KEY_PASSWORD")
+                System.getenv("GPG_KEY_SECRET") ?: localProperties["gpg.keySecret"] as String?,
+                System.getenv("GPG_KEY_PASSWORD") ?: localProperties["gpg.keyPassword"] as String?
             )
 
             sign(publishing.publications)
