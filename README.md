@@ -71,7 +71,8 @@ Note: Please use `executeSuspendingAsList()` in queries instead of `executeAsLis
 
 
 ## Thanks
-To _Isuru Rajapakse_ and the project https://github.com/xxfast/KStore which is an inspiration for the set-up of publishing in Gradle scripts. 
+To _Isuru Rajapakse_ and the project [KStore](https://github.com/xxfast/KStore) which is an inspiration for the set-up of publishing in Gradle scripts. 
+To authors of SQLDelight, implementation is based on the [sqljs](https://github.com/sql-js/sql.js/) implementation of the driver which is already included in the library.s.
 
 ## License
 Licensed under the Apache License, Version 2.0 (the "License");
