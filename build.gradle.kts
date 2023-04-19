@@ -10,8 +10,9 @@ plugins {
     id("signing")
 }
 
-group = "cz.sazel.sqldelight"
-val versionBase = "0.1.2"
+val defaultGroupId = "cz.sazel.sqldelight"
+val versionBase = "0.1.3"
+
 val localProperties = Properties().apply {
     try {
         load(project.rootProject.file("local.properties").inputStream())
@@ -20,6 +21,7 @@ val localProperties = Properties().apply {
     }
 }
 
+group = System.getenv("GROUP_ID") ?: localProperties["groupId"] as String? ?: defaultGroupId
 version = System.getenv("PACKAGE_VERSION") ?: localProperties["packageVersion"] as String? ?: "$versionBase-SNAPSHOT"
 
 
@@ -149,9 +151,9 @@ kotlin {
                 }
                 maven {
                     val isSnapshot = version.toString().endsWith("SNAPSHOT")
-                    val destination = if (isSnapshot) {
-                        "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-                    } else "https://oss.sonatype.org/content/repositories/snapshots/"
+                    val destination = if (!isSnapshot) {
+                        "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+                    } else "https://s01.oss.sonatype.org/content/repositories/snapshots"
                     url = uri(destination)
                     credentials {
                         username = localProperties["sonatype.user"] as String? ?: System.getenv("SONATYPE_USER")
