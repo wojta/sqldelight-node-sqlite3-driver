@@ -51,7 +51,7 @@ in the `sqlite3` node package directory.
 ```kotlin
 val bindingsInstall = tasks.register("sqlite3BindingsInstall") {
     doLast {
-        val sqlite3moduleDir = buildDir.resolve("js/node_modules/sqlite3")
+        val sqlite3moduleDir = rootProject.buildDir.resolve("js/node_modules/sqlite3")
         if (!sqlite3moduleDir.resolve("lib/binding").exists()) {
             exec {
                 workingDir = sqlite3moduleDir
