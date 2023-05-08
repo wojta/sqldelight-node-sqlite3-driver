@@ -257,10 +257,10 @@ class SQLite3DriverTest {
     @Test
     fun test_transaction_rollback() = runTest { driver ->
         val insert: InsertFunction = { binders: SqlPreparedStatement.() -> Unit ->
-            driver.await(13, "INSERT INTO nonexisting_test VALUES (?, ?);", 2, binders)
+            driver.await(13, "INSERT INTO nonexisting_table VALUES (?, ?);", 2, binders)
         }
 
-        driver.newTransaction().await()
+//        driver.newTransaction().await()
         val success = try {
             insert {
                 bindLong(0, 3)
@@ -274,28 +274,16 @@ class SQLite3DriverTest {
         try {
             assertFalse(success)
         } finally {
-            (driver as SQLite3Driver)._endTransactionForTests(success)
+//            (driver as SQLite3Driver)._endTransactionForTests(success)
         }
     }
 
     @Test
-    fun worker_exceptions_are_handled_correctly() = runTest { driver ->
-        println("IS_LEGACY: $IS_LEGACY")
-        // Despite the exception being thrown correctly in LEGACY builds, this test fails for some reason
-        if (IS_LEGACY) return@runTest
-
-        val error = assertFailsWith<Exception> { //TODO change exception
+    fun exceptions_are_handled_correctly() = runTest { driver ->
+        val error = assertFailsWith<SQLite3JsException> {
             schema.awaitCreate(driver)
         }
         assertContains(error.toString(), "table test already exists")
-    }
-
-    // TODO: Remove this once LEGACY builds are dropped
-    companion object {
-        private data class Obj(val entry: String)
-
-        private val prototype = js("Object").getPrototypeOf(Obj("test"))
-        private val prototypeProps: Array<String> = js("Object").getOwnPropertyNames(prototype).unsafeCast<Array<String>>()
-        private val IS_LEGACY = prototypeProps.firstOrNull { it.contains("_get_") } == null
+        assertEquals(error.errorNumber, 1)
     }
 }

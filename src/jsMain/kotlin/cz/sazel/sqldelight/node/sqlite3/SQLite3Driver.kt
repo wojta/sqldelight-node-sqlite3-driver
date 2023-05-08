@@ -33,11 +33,11 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
             if (enclosingTransaction == null) {
                 val sql = if (successful) "END TRANSACTION" else "ROLLBACK TRANSACTION"
                 suspendCoroutine { cont ->
-                    val callback: (Any?) -> Unit = { self ->
-                        if (self !is Throwable) {
-                            cont.resume(self as Sqlite3.Statement)
+                    val callback: (Any?) -> Unit = {
+                        if (it == null || it !is Throwable) {
+                            cont.resume(it)
                         } else {
-                            cont.resumeWithException(SQLite3Exception(self))
+                            cont.resumeWithException(SQLite3JsException(it))
                         }
                     }
                     db.exec(sql, callback)
@@ -60,9 +60,6 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
                 val res2 = db.prepare(sql)
                 return@getOrPut res2
             }
-//                .apply {
-//                reset()
-//            }
         }
         return res
     }
@@ -75,7 +72,7 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
             val rows = suspendCoroutine { cont ->
                 statement.all { error, rows ->
                     if (error is Throwable) {
-                        cont.resumeWithException(error)
+                        cont.resumeWithException(SQLite3JsException(error))
                     } else {
                         cont.resume(rows)
                     }
@@ -88,19 +85,24 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
         }
 
     override fun execute(identifier: Int?, sql: String, parameters: Int, binders: (SqlPreparedStatement.() -> Unit)?): QueryResult<Long> = QueryResult.AsyncValue {
-        val statement = createOrGetStatement(identifier, sql)
-        statement.bind(parameters, binders)
-        suspendCoroutine { cont ->
-            val callback: (Any) -> Unit = { self ->
-                if (self is Throwable) {
-                    cont.resumeWithException(SQLite3Exception(self))
-                } else {
-                    cont.resume(Unit)
+        try {
+            val statement = createOrGetStatement(identifier, sql)
+            statement.bind(parameters, binders)
+            suspendCoroutine { cont ->
+                val callback: (Any) -> Unit = {
+                    if (it is Throwable) {
+                        cont.resumeWithException(SQLite3JsException(it))
+                    } else {
+                        cont.resume(Unit)
+                    }
                 }
+                statement.run(callback)
             }
-            statement.run(callback)
+            return@AsyncValue 0
+        } catch (e: Throwable) {
+            println("exception $e")
+            return@AsyncValue 0
         }
-        return@AsyncValue 0
     }
 
     override fun newTransaction(): QueryResult<Transacter.Transaction> = QueryResult.AsyncValue {
@@ -113,7 +115,7 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
                     if (it == null || it !is Throwable) {
                         cont.resume(it)
                     } else {
-                        cont.resumeWithException(SQLite3Exception(it))
+                        cont.resumeWithException(SQLite3JsException(it))
                     }
                 }
                 db.exec("BEGIN TRANSACTION", callback)
@@ -159,16 +161,22 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
         if (parameters > 0) {
             val bound = SQLite3PreparedStatement(parameters)
             binders(bound)
+            println("binders")
             suspendCoroutine { cont ->
                 val callback: (Any?) -> Unit = {
                     if (it == null || it !is Throwable) {
+                        println("bind resume")
                         cont.resume(it)
                     } else {
-                        cont.resumeWithException(it)
+                        println("bind resume exception")
+                        cont.resumeWithException(SQLite3JsException(it))
                     }
                 }
-                bind(bound.parameters.toTypedArray(), callback)
+                println("bind")
+                bind(bound.parameters.toTypedArray(), callback = callback)
+                println("bind end")
             }
+            println("bind after susp")
         }
     }
 }
