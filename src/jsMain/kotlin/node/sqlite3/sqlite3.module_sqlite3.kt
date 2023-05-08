@@ -159,10 +159,10 @@ external object Sqlite3 {
         constructor(filename: String, mode: Number = definedExternally)
 
         open fun close(callback: (err: Error?) -> Unit = definedExternally)
-        open fun run(sql: String, callback: (self: Any?) -> Unit): Database /* this */
+        open fun run(sql: String, callback: (self: Any?) -> Unit = definedExternally): Database /* this */
 
-        //        open fun run(sql: String): Database /* this */
-        open fun run(sql: String, params: Any, callback: (self: Any?) -> Unit = definedExternally): Database /* this */
+        open fun run(sql: String): Database
+        open fun run(sql: String, params: Any?, callback: (self: Any?) -> Unit = definedExternally): Database /* this */
 
         //        open fun run(sql: String, params: Any): Database /* this */
         open fun get(sql: String, callback: (self: Statement, err: Error?, row: Any) -> Unit = definedExternally): Database /* this */
@@ -190,7 +190,7 @@ external object Sqlite3 {
 
         open fun each(sql: String, params: Any): Database /* this */
         open fun each(sql: String, params: Any, callback: (self: Statement, err: Error?, row: Any) -> Unit = definedExternally): Database /* this */
-        open fun exec(sql: String, callback: (self: Statement, err: Error?) -> Unit = definedExternally): Database /* this */
+        open fun exec(sql: String, callback: (self: Any?) -> Unit = definedExternally): Database /* this */
 
         //open fun prepare(sql: String, callback: (self: Statement, err: Error?) -> Unit = definedExternally): Statement
         open fun prepare(sql: String, callback: (self: Any) -> Unit): Statement
