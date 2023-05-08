@@ -24,27 +24,32 @@ internal suspend fun SQLite3Driver.withSchema(schema: SqlSchema? = null) = this.
 class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : SqlDriver {
     private val listeners = mutableMapOf<String, MutableSet<Query.Listener>>()
     private val statements = mutableMapOf<Int, Sqlite3.Statement>()
-    private var transaction: Transacter.Transaction? = null
+    private var transaction: Transaction? = null
 
-    private inner class Transaction(
+    internal inner class Transaction(
         override val enclosingTransaction: Transacter.Transaction?,
     ) : Transacter.Transaction() {
         override fun endTransaction(successful: Boolean): QueryResult<Unit> = QueryResult.AsyncValue {
             if (enclosingTransaction == null) {
                 val sql = if (successful) "END TRANSACTION" else "ROLLBACK TRANSACTION"
                 suspendCoroutine { cont ->
-                    val callback: (Any) -> Unit = { self ->
+                    val callback: (Any?) -> Unit = { self ->
                         if (self !is Throwable) {
                             cont.resume(self as Sqlite3.Statement)
                         } else {
                             cont.resumeWithException(SQLite3Exception(self))
                         }
                     }
-                    db.run(sql, callback)
+                    db.exec(sql, callback)
                 }
             }
-            transaction = enclosingTransaction
+            transaction = this
         }
+
+        /**
+         * Use for tests only.
+         */
+        internal fun _endTransactionForTests(successful: Boolean) = endTransaction(successful)
     }
 
     private fun createOrGetStatement(identifier: Int?, sql: String): Sqlite3.Statement {
@@ -104,14 +109,14 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
         this.transaction = transaction
         if (enclosing == null) {
             suspendCoroutine { cont ->
-                val callback: (Any) -> Unit = { self ->
-                    if (self !is Throwable) {
-                        cont.resume(self as Sqlite3.Statement)
+                val callback: (Any?) -> Unit = {
+                    if (it == null || it !is Throwable) {
+                        cont.resume(it)
                     } else {
-                        cont.resumeWithException(SQLite3Exception(self))
+                        cont.resumeWithException(SQLite3Exception(it))
                     }
                 }
-                db.run("BEGIN TRANSACTION", callback)
+                db.exec("BEGIN TRANSACTION", callback)
             }
         }
 
@@ -119,6 +124,9 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
     }
 
     override fun currentTransaction(): Transacter.Transaction? = transaction
+
+    internal fun _endTransactionForTests(successful: Boolean) = transaction?._endTransactionForTests(successful)
+
 
     override fun addListener(listener: Query.Listener, queryKeys: Array<String>) {
         queryKeys.forEach {
@@ -153,10 +161,11 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
             binders(bound)
             suspendCoroutine { cont ->
                 val callback: (Any?) -> Unit = {
-                    if (it is Throwable)
-                        cont.resumeWithException(it)
-                    else
+                    if (it == null || it !is Throwable) {
                         cont.resume(it)
+                    } else {
+                        cont.resumeWithException(it)
+                    }
                 }
                 bind(bound.parameters.toTypedArray(), callback)
             }

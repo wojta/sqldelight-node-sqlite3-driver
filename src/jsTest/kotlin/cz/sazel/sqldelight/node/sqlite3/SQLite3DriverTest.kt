@@ -231,6 +231,54 @@ class SQLite3DriverTest {
     }
 
     @Test
+    fun test_transaction_commit() = runTest { driver ->
+        val insert: InsertFunction = { binders: SqlPreparedStatement.() -> Unit ->
+            driver.await(12, "INSERT INTO test VALUES (?, ?);", 2, binders)
+        }
+
+        driver.newTransaction().await()
+        val success = try {
+            insert {
+                bindLong(0, 3)
+                bindString(1, "Hello")
+            }
+            true
+        } catch (e: SQLite3Exception) {
+            false
+        }
+
+        try {
+            assertTrue(success)
+        } finally {
+            (driver as SQLite3Driver)._endTransactionForTests(success)
+        }
+    }
+
+    @Test
+    fun test_transaction_rollback() = runTest { driver ->
+        val insert: InsertFunction = { binders: SqlPreparedStatement.() -> Unit ->
+            driver.await(13, "INSERT INTO nonexisting_test VALUES (?, ?);", 2, binders)
+        }
+
+        driver.newTransaction().await()
+        val success = try {
+            insert {
+                bindLong(0, 3)
+                bindString(1, "Hello")
+            }
+            true
+        } catch (e: SQLite3Exception) {
+            false
+        }
+
+        try {
+            assertFalse(success)
+        } finally {
+            (driver as SQLite3Driver)._endTransactionForTests(success)
+        }
+    }
+
+    @Test
     fun worker_exceptions_are_handled_correctly() = runTest { driver ->
         println("IS_LEGACY: $IS_LEGACY")
         // Despite the exception being thrown correctly in LEGACY builds, this test fails for some reason
