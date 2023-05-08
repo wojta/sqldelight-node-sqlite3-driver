@@ -24,3 +24,11 @@ suspend fun <T : Any> Query<T>.executeSuspendingAsList(): List<T> {
         return (query as QueryResult.AsyncValue<List<T>>).await()
     } else throw IllegalArgumentException("Can be used only with async SQLite3 driver")
 }
+
+
+internal val <T> T?.nullable: T?
+    get() = when (this) {
+        null -> null
+        undefined -> null
+        else -> this
+    }
