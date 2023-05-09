@@ -1,9 +1,11 @@
+import io.gitlab.arturbosch.detekt.Detekt
 import org.jetbrains.kotlin.gradle.targets.js.yarn.yarn
 import java.util.*
 
 plugins {
     kotlin("multiplatform") version "1.8.20"
     //id("dev.petuska.npm.publish") version "2.1.1"
+    id("io.gitlab.arturbosch.detekt").version("1.23.0-RC2")
     id("org.jetbrains.dokka") version "1.8.10"
     id("org.jetbrains.kotlinx.kover") version "0.6.1"
     id("maven-publish")
@@ -223,4 +225,17 @@ koverMerged {
         onCheck.set(true)
     }
     enable()
+}
+
+detekt {
+    buildUponDefaultConfig = true // preconfigure defaults
+    allRules = false // activate all available (even unstable) rules.
+    config.setFrom("$projectDir/gradle/detekt/detekt.yml") // point to your custom config defining rules to run, overwriting default behavior
+ //   baseline = file("$projectDir/config/baseline.xml") // a way of suppressing issues before introducing detekt
+}
+
+tasks.withType<Detekt>().configureEach {
+    reports {
+        html.required.set(true) // observe findings in your browser with structure and code snippets
+    }
 }

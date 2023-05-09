@@ -1,4 +1,8 @@
-@file:Suppress("INTERFACE_WITH_SUPERCLASS", "OVERRIDING_FINAL_MEMBER", "RETURN_TYPE_MISMATCH_ON_OVERRIDE", "CONFLICTING_OVERLOADS")
+@file:Suppress(
+    "INTERFACE_WITH_SUPERCLASS", "OVERRIDING_FINAL_MEMBER", "RETURN_TYPE_MISMATCH_ON_OVERRIDE", "CONFLICTING_OVERLOADS",
+    "TooManyFunctions", "MatchingDeclarationName", "MaxLineLength","UnusedPrivateProperty",
+    "UnusedParameter","UnusedPrivateMember"
+)
 
 package node.sqlite3
 
@@ -114,7 +118,7 @@ external object Sqlite3 {
         var changes: Number
     }
 
-    internal open class Statement : events.EventEmitter {
+    internal open class Statement : node.events.EventEmitter {
         open fun bind(params: Array<Any?>, callback: (self: Any?) -> Unit = definedExternally): Statement /* this */
 
         //        open fun bind(callback: (err: Error?) -> Unit = definedExternally): Statement /* this */
@@ -152,7 +156,7 @@ external object Sqlite3 {
         open fun each(params: Any, callback: (self: RunResult, err: Error?, row: Any) -> Unit = definedExternally): Statement /* this */
     }
 
-    internal open class Database : events.EventEmitter {
+    internal open class Database : node.events.EventEmitter {
         constructor(filename: String, callback: (err: Error?) -> Unit = definedExternally)
         constructor(filename: String)
         constructor(filename: String, mode: Number = definedExternally, callback: (err: Error?) -> Unit = definedExternally)

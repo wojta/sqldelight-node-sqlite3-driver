@@ -20,6 +20,24 @@ permissions:
   id-token: write
 
 jobs:
+  detekt:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+          ref: ${{ github.head_ref }}
+
+      - name: Setup detekt
+        uses: peter-murray/setup-detekt@v2
+        with:
+          detekt_version: 1.22.0
+
+      - name: Run detekt
+        run: detekt-cli -c gradle/detekt/detekt.yml
+
   build:
 
     runs-on: ubuntu-latest

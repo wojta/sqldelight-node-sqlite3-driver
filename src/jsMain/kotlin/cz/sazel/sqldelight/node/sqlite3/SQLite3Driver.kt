@@ -20,7 +20,6 @@ private fun initSqlite3Database(
 ): Sqlite3.Database = Sqlite3.Database(filename, mode)
 
 internal suspend fun SQLite3Driver.withSchema(schema: SqlSchema? = null) = this.also { schema?.create(it)?.await() }
-
 class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : SqlDriver {
     private val listeners = mutableMapOf<String, MutableSet<Query.Listener>>()
     private val statements = mutableMapOf<Int, Sqlite3.Statement>()
@@ -76,27 +75,33 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
         return res
     }
 
-    override fun <R> executeQuery(identifier: Int?, sql: String, mapper: (SqlCursor) -> R, parameters: Int, binders: (SqlPreparedStatement.() -> Unit)?): QueryResult<R> =
-        QueryResult.AsyncValue {
-            val statement = createOrGetStatement(identifier, sql)
-            statement.bind(parameters, binders)
-            //TODO unfortunately it needs to fetch all rows as SqlCursor is not async friendly, this needs to be improved in future
-            val rows = suspendCoroutine { cont ->
-                statement.all { error, rows ->
-                    if (error is Throwable) {
-                        cont.resumeWithException(SQLite3JsException(error))
-                    } else {
-                        cont.resume(rows)
-                    }
+    override fun <R> executeQuery(
+        identifier: Int?, sql: String, mapper: (SqlCursor) -> R,
+        parameters: Int, binders: (SqlPreparedStatement.() -> Unit)?
+    ): QueryResult<R> = QueryResult.AsyncValue {
+        val statement = createOrGetStatement(identifier, sql)
+        statement.bind(parameters, binders)
+        //TODO unfortunately it needs to fetch all rows as SqlCursor is not async friendly,
+        // this needs to be improved in future
+        val rows = suspendCoroutine { cont ->
+            statement.all { error, rows ->
+                if (error is Throwable) {
+                    cont.resumeWithException(SQLite3JsException(error))
+                } else {
+                    cont.resume(rows)
                 }
             }
-
-
-            val cursor = SQLite3Cursor(rows)
-            mapper(cursor)
         }
 
-    override fun execute(identifier: Int?, sql: String, parameters: Int, binders: (SqlPreparedStatement.() -> Unit)?): QueryResult<Long> = QueryResult.AsyncValue {
+
+        val cursor = SQLite3Cursor(rows)
+        mapper(cursor)
+    }
+
+    override fun execute(
+        identifier: Int?, sql: String,
+        parameters: Int, binders: (SqlPreparedStatement.() -> Unit)?
+    ): QueryResult<Long> = QueryResult.AsyncValue {
         val statement = createOrGetStatement(identifier, sql)
         statement.bind(parameters, binders)
         suspendCoroutine { cont ->

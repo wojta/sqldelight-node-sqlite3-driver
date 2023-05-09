@@ -259,7 +259,6 @@ class SQLite3DriverTest {
         val insert: InsertFunction = { binders: SqlPreparedStatement.() -> Unit ->
             driver.await(13, "INSERT INTO nonexisting_table VALUES (?, ?);", 2, binders)
         }
-
         driver.newTransaction().await()
         val success = try {
             insert {
