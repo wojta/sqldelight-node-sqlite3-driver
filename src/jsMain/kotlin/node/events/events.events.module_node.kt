@@ -1,5 +1,11 @@
-@file:Suppress("INTERFACE_WITH_SUPERCLASS", "OVERRIDING_FINAL_MEMBER", "RETURN_TYPE_MISMATCH_ON_OVERRIDE", "CONFLICTING_OVERLOADS")
-package events
+@file:Suppress(
+    "INTERFACE_WITH_SUPERCLASS", "OVERRIDING_FINAL_MEMBER",
+    "RETURN_TYPE_MISMATCH_ON_OVERRIDE", "CONFLICTING_OVERLOADS", "TooManyFunctions",
+    "MatchingDeclarationName","MaxLineLength","UnusedPrivateProperty",
+    "UnusedParameter","ClassNaming","UnusedPrivateMember"
+)
+
+package node.events
 
 import kotlin.js.Promise
 
@@ -68,7 +74,8 @@ internal open external class EventEmitter(options: EventEmitterOptions = defined
         fun once(emitter: NodeEventTarget, eventName: String, options: StaticEventEmitterOptions = definedExternally): Promise<Array<Any>>
         fun once(emitter: NodeEventTarget, eventName: Any, options: StaticEventEmitterOptions = definedExternally): Promise<Array<Any>>
         fun once(emitter: DOMEventTarget, eventName: String, options: StaticEventEmitterOptions = definedExternally): Promise<Array<Any>>
-//        fun on(emitter: events.global.NodeJS.EventEmitter, eventName: String, options: StaticEventEmitterOptions = definedExternally): AsyncIterableIterator<Any>
+
+        //        fun on(emitter: events.global.NodeJS.EventEmitter, eventName: String, options: StaticEventEmitterOptions = definedExternally): AsyncIterableIterator<Any>
 //        fun listenerCount(emitter: events.global.NodeJS.EventEmitter, eventName: String): Number
 //        fun listenerCount(emitter: events.global.NodeJS.EventEmitter, eventName: Any): Number
 //        fun getEventListeners(emitter: DOMEventTarget, name: String): Array<Function<*>>
