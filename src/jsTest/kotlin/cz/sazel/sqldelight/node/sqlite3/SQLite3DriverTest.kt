@@ -53,7 +53,7 @@ class SQLite3DriverTest {
             println("db test.db created")
             block(driver)
             driver.close()
-            println("deleteing db")
+            println("deleting db")
             js("require('fs').unlinkSync('test.db')")
         } catch (e: Exception) {
             e.printStackTrace()
@@ -260,7 +260,7 @@ class SQLite3DriverTest {
             driver.await(13, "INSERT INTO nonexisting_table VALUES (?, ?);", 2, binders)
         }
 
-//        driver.newTransaction().await()
+        driver.newTransaction().await()
         val success = try {
             insert {
                 bindLong(0, 3)
@@ -274,7 +274,7 @@ class SQLite3DriverTest {
         try {
             assertFalse(success)
         } finally {
-//            (driver as SQLite3Driver)._endTransactionForTests(success)
+            (driver as SQLite3Driver)._endTransactionForTests(success)
         }
     }
 
