@@ -13,7 +13,7 @@ plugins {
 }
 
 val defaultGroupId = "cz.sazel.sqldelight"
-val versionBase = "0.1.4"
+val versionBase = "0.1.5"
 
 val localProperties = Properties().apply {
     try {
