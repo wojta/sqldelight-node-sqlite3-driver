@@ -11,9 +11,12 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 suspend fun initSqlite3SqlDriver(
-    filename: String, mode: Number = OPEN_CREATE.toInt() or OPEN_READWRITE.toInt(),
+    filename: String, mode: Number? = null,
     schema: SqlSchema? = null,
-): SQLite3Driver = SQLite3Driver(initSqlite3Database(filename, mode)).withSchema(schema)
+): SQLite3Driver =
+    SQLite3Driver(initSqlite3Database(filename, mode ?: (OPEN_CREATE.toInt() or OPEN_READWRITE.toInt()))).withSchema(
+        schema
+    )
 
 private fun initSqlite3Database(
     filename: String, mode: Number = OPEN_CREATE.toInt() or OPEN_READWRITE.toInt()
