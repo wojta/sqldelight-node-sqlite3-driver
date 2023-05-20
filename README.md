@@ -6,6 +6,8 @@
 Driver for the library [SQLDelight](https://github.com/cashapp/sqldelight) that supports [sqlite3](https://www.npmjs.com/package/sqlite3) Node.js module
 * example here: https://github.com/wojta/example-sqldelight-node-sqlite3-driver
 
+## [API KDoc](https://wojta.github.io/sqldelight-node-sqlite3-driver/)
+
 ## Gradle set up 
 
 Pretty much it's almost the same as with https://cashapp.github.io/sqldelight/2.0.0-alpha05/js_sqlite/
