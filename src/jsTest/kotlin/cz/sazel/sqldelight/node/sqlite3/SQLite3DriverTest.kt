@@ -9,10 +9,10 @@ import kotlin.test.*
 typealias InsertFunction = suspend (SqlPreparedStatement.() -> Unit) -> Unit
 
 class SQLite3DriverTest {
-    private val schema = object : SqlSchema {
+    private val schema = object : SqlSchema<QueryResult.AsyncValue<Unit>> {
         override val version: Int = 1
 
-        override fun create(driver: SqlDriver): QueryResult<Unit> = QueryResult.AsyncValue {
+        override fun create(driver: SqlDriver): QueryResult.AsyncValue<Unit> = QueryResult.AsyncValue {
             driver.execute(
                 0,
                 """
@@ -73,16 +73,16 @@ class SQLite3DriverTest {
             driver.await(2, "INSERT INTO test VALUES (?, ?);", 2, binders)
         }
 
-        suspend fun query(mapper: (SqlCursor) -> Unit) {
+        suspend fun query(mapper: suspend (SqlCursor) -> Unit) {
             driver.awaitQuery(3, "SELECT * FROM test", mapper, 0)
         }
 
-        suspend fun changes(mapper: (SqlCursor) -> Long?): Long? {
+        suspend fun changes(mapper: suspend (SqlCursor) -> Long?): Long? {
             return driver.awaitQuery(4, "SELECT changes()", mapper, 0)
         }
 
         query {
-            assertFalse(it.next())
+            assertFalse(it.next().await())
         }
 
         insert {
@@ -91,14 +91,14 @@ class SQLite3DriverTest {
         }
 
         query {
-            assertTrue(it.next())
-            assertFalse(it.next())
+            assertTrue(it.next().await())
+            assertFalse(it.next().await())
         }
 
-        assertEquals(1, changes { it.next(); it.getLong(0) })
+        assertEquals(1, changes { it.next().await(); it.getLong(0) })
 
         query {
-            assertTrue(it.next())
+            assertTrue(it.next().await())
             assertEquals(1, it.getLong(0))
             assertEquals("Alec", it.getString(1))
         }
@@ -107,22 +107,22 @@ class SQLite3DriverTest {
             bindLong(0, 2)
             bindString(1, "Jake")
         }
-        assertEquals(1, changes { it.next(); it.getLong(0) })
+        assertEquals(1, changes { it.next().await(); it.getLong(0) })
 
         query {
-            assertTrue(it.next())
+            assertTrue(it.next().await())
             assertEquals(1, it.getLong(0))
             assertEquals("Alec", it.getString(1))
-            assertTrue(it.next())
+            assertTrue(it.next().await())
             assertEquals(2, it.getLong(0))
             assertEquals("Jake", it.getString(1))
         }
 
         driver.await(5, "DELETE FROM test", 0)
-        assertEquals(2, changes { it.next(); it.getLong(0) })
+        assertEquals(2, changes { it.next().await(); it.getLong(0) })
 
         query {
-            assertFalse(it.next())
+            assertFalse(it.next().await())
         }
     }
 
@@ -133,7 +133,7 @@ class SQLite3DriverTest {
             driver.await(2, "INSERT INTO test VALUES (?, ?);", 2, binders)
         }
 
-        suspend fun changes(mapper: (SqlCursor) -> Long?): Long? {
+        suspend fun changes(mapper: suspend (SqlCursor) -> Long?): Long? {
             return driver.awaitQuery(4, "SELECT changes()", mapper, 0)
         }
 
@@ -141,14 +141,14 @@ class SQLite3DriverTest {
             bindLong(0, 1)
             bindString(1, "Alec")
         }
-        assertEquals(1, changes { it.next(); it.getLong(0) })
+        assertEquals(1, changes { it.next().await(); it.getLong(0) })
         insert {
             bindLong(0, 2)
             bindString(1, "Jake")
         }
-        assertEquals(1, changes { it.next(); it.getLong(0) })
+        assertEquals(1, changes { it.next().await(); it.getLong(0) })
 
-        suspend fun query(binders: SqlPreparedStatement.() -> Unit, mapper: (SqlCursor) -> Unit) {
+        suspend fun query(binders: SqlPreparedStatement.() -> Unit, mapper: suspend (SqlCursor) -> Unit) {
             driver.awaitQuery(6, "SELECT * FROM test WHERE value = ?", mapper, 1, binders)
         }
         query(
@@ -156,7 +156,7 @@ class SQLite3DriverTest {
                 bindString(0, "Jake")
             },
             mapper = {
-                assertTrue(it.next())
+                assertTrue(it.next().await())
                 assertEquals(2, it.getLong(0))
                 assertEquals("Jake", it.getString(1))
             },
@@ -168,7 +168,7 @@ class SQLite3DriverTest {
                 bindString(0, "Jake")
             },
             mapper = {
-                assertTrue(it.next())
+                assertTrue(it.next().await())
                 assertEquals(2, it.getLong(0))
                 assertEquals("Jake", it.getString(1))
             },
@@ -181,7 +181,7 @@ class SQLite3DriverTest {
             driver.await(7, "INSERT INTO nullability_test VALUES (?, ?, ?, ?, ?);", 5, binders)
         }
 
-        suspend fun changes(mapper: (SqlCursor) -> Long?): Long? {
+        suspend fun changes(mapper: suspend (SqlCursor) -> Long?): Long? {
             return driver.awaitQuery(4, "SELECT changes()", mapper, 0)
         }
 
@@ -193,8 +193,8 @@ class SQLite3DriverTest {
             bindDouble(4, null)
         }
 
-        val mapper: (SqlCursor) -> Unit = {
-            assertTrue(it.next())
+        val mapper: suspend (SqlCursor) -> Unit = {
+            assertTrue(it.next().await())
             assertEquals(1, it.getLong(0))
             assertNull(it.getLong(1))
             assertNull(it.getString(2))
@@ -202,7 +202,7 @@ class SQLite3DriverTest {
             assertNull(it.getDouble(4))
         }
         driver.awaitQuery(8, "SELECT * FROM nullability_test", mapper, 0)
-        changes { it.next(); it.getLong(0) }
+        changes { it.next().await(); it.getLong(0) }
     }
 
     @Test
@@ -219,8 +219,8 @@ class SQLite3DriverTest {
             bindDouble(4, Float.MAX_VALUE.toDouble())
         }
 
-        val mapper: (SqlCursor) -> Unit = {
-            assertTrue(it.next())
+        val mapper: suspend (SqlCursor) -> Unit = {
+            assertTrue(it.next().await())
             assertEquals(1, it.getLong(0))
             assertEquals(Long.MAX_VALUE, it.getLong(1))
             assertEquals("Hello", it.getString(2))
