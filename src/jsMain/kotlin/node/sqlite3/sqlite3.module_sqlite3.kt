@@ -1,7 +1,7 @@
 @file:Suppress(
     "INTERFACE_WITH_SUPERCLASS", "OVERRIDING_FINAL_MEMBER", "RETURN_TYPE_MISMATCH_ON_OVERRIDE", "CONFLICTING_OVERLOADS",
-    "TooManyFunctions", "MatchingDeclarationName", "MaxLineLength","UnusedPrivateProperty",
-    "UnusedParameter","UnusedPrivateMember"
+    "TooManyFunctions", "MatchingDeclarationName", "MaxLineLength", "UnusedPrivateProperty",
+    "UnusedParameter", "UnusedPrivateMember"
 )
 
 package node.sqlite3
@@ -110,7 +110,11 @@ external object Sqlite3 {
 
     internal object cached {
         fun Database(filename: String, callback: (self: Database, err: Error?) -> Unit = definedExternally): Database
-        fun Database(filename: String, mode: Number = definedExternally, callback: (self: Database, err: Error?) -> Unit = definedExternally): Database
+        fun Database(
+            filename: String,
+            mode: Number = definedExternally,
+            callback: (self: Database, err: Error?) -> Unit = definedExternally
+        ): Database
     }
 
     internal interface RunResult : Statement {
@@ -125,16 +129,20 @@ external object Sqlite3 {
 //        open fun bind(): Statement /* this */
 //        open fun bind(vararg params: Any): Statement /* this */
         open fun reset(callback: (err: Nothing?) -> Unit = definedExternally): Statement /* this */
-        open fun finalize(callback: (err: Error) -> Unit = definedExternally): Database
+        open fun finalize(callback: (err: Error?) -> Unit = definedExternally): Database
         open fun run(callback: (err: Error?) -> Unit = definedExternally): Statement /* this */
         open fun run(): Statement /* this */
 
         //open fun run(params: Any, callback: (self: RunResult, err: Error?) -> Unit = definedExternally): Statement /* this */
         open fun run(params: Any, callback: (self: Any?) -> Unit): Statement
         open fun run(params: Any): Statement /* this */
-        open fun get(callback: (err: Error?, row: Any) -> Unit = definedExternally): Statement /* this */
+        open fun get(callback: (row: Any?, row2: Any) -> Unit = definedExternally): Statement /* this */
         open fun get(): Statement /* this */
-        open fun get(params: Any, callback: (self: RunResult, err: Error?, row: Any) -> Unit = definedExternally): Statement /* this */
+        open fun get(
+            params: Any,
+            callback: (self: RunResult, err: Error?, row: Any) -> Unit = definedExternally
+        ): Statement /* this */
+
         open fun get(params: Any): Statement /* this */
 
         open fun all(callback: (err: Error?, rows: Array<Array<dynamic>>) -> Unit = definedExternally): Statement /* this */
@@ -143,7 +151,11 @@ external object Sqlite3 {
         //open fun all(): Statement /* this */
 //        open fun all(params: Any, callback: (self: RunResult, err: Error?, rows: Array<Any>) -> Unit = definedExternally): Statement /* this */
 //        open fun all(params: Any): Statement /* this */
-        open fun each(callback: (err: Error?, row: Any) -> Unit = definedExternally, complete: (err: Error?, count: Number) -> Unit = definedExternally): Statement /* this */
+        open fun each(
+            callback: (err: Error?, row: Any) -> Unit = definedExternally,
+            complete: (err: Error?, count: Number) -> Unit = definedExternally
+        ): Statement /* this */
+
         open fun each(): Statement /* this */
         open fun each(callback: (err: Error?, row: Any) -> Unit = definedExternally): Statement /* this */
         open fun each(
@@ -153,13 +165,21 @@ external object Sqlite3 {
         ): Statement /* this */
 
         open fun each(params: Any): Statement /* this */
-        open fun each(params: Any, callback: (self: RunResult, err: Error?, row: Any) -> Unit = definedExternally): Statement /* this */
+        open fun each(
+            params: Any,
+            callback: (self: RunResult, err: Error?, row: Any) -> Unit = definedExternally
+        ): Statement /* this */
     }
 
     internal open class Database : node.events.EventEmitter {
         constructor(filename: String, callback: (err: Error?) -> Unit = definedExternally)
         constructor(filename: String)
-        constructor(filename: String, mode: Number = definedExternally, callback: (err: Error?) -> Unit = definedExternally)
+        constructor(
+            filename: String,
+            mode: Number = definedExternally,
+            callback: (err: Error?) -> Unit = definedExternally
+        )
+
         constructor(filename: String, mode: Number = definedExternally)
 
         open fun close(callback: (err: Error?) -> Unit = definedExternally)
@@ -169,13 +189,31 @@ external object Sqlite3 {
         open fun run(sql: String, params: Any?, callback: (self: Any?) -> Unit = definedExternally): Database /* this */
 
         //        open fun run(sql: String, params: Any): Database /* this */
-        open fun get(sql: String, callback: (self: Statement, err: Error?, row: Any) -> Unit = definedExternally): Database /* this */
+        open fun get(
+            sql: String,
+            callback: (self: Statement, err: Error?, row: Any) -> Unit = definedExternally
+        ): Database /* this */
+
         open fun get(sql: String): Database /* this */
-        open fun get(sql: String, params: Any, callback: (self: Statement, err: Error?, row: Any) -> Unit = definedExternally): Database /* this */
+        open fun get(
+            sql: String,
+            params: Any,
+            callback: (self: Statement, err: Error?, row: Any) -> Unit = definedExternally
+        ): Database /* this */
+
         open fun get(sql: String, params: Any): Database /* this */
-        open fun all(sql: String, callback: (self: Statement, err: Error?, rows: Array<Any>) -> Unit = definedExternally): Database /* this */
+        open fun all(
+            sql: String,
+            callback: (self: Statement, err: Error?, rows: Array<Any>) -> Unit = definedExternally
+        ): Database /* this */
+
         open fun all(sql: String): Database /* this */
-        open fun all(sql: String, params: Any, callback: (self: Statement, err: Error?, rows: Array<Any>) -> Unit = definedExternally): Database /* this */
+        open fun all(
+            sql: String,
+            params: Any,
+            callback: (self: Statement, err: Error?, rows: Array<Any>) -> Unit = definedExternally
+        ): Database /* this */
+
         open fun all(sql: String, params: Any): Database /* this */
         open fun each(
             sql: String,
@@ -184,7 +222,11 @@ external object Sqlite3 {
         ): Database /* this */
 
         open fun each(sql: String): Database /* this */
-        open fun each(sql: String, callback: (self: Statement, err: Error?, row: Any) -> Unit = definedExternally): Database /* this */
+        open fun each(
+            sql: String,
+            callback: (self: Statement, err: Error?, row: Any) -> Unit = definedExternally
+        ): Database /* this */
+
         open fun each(
             sql: String,
             params: Any,
@@ -193,7 +235,12 @@ external object Sqlite3 {
         ): Database /* this */
 
         open fun each(sql: String, params: Any): Database /* this */
-        open fun each(sql: String, params: Any, callback: (self: Statement, err: Error?, row: Any) -> Unit = definedExternally): Database /* this */
+        open fun each(
+            sql: String,
+            params: Any,
+            callback: (self: Statement, err: Error?, row: Any) -> Unit = definedExternally
+        ): Database /* this */
+
         open fun exec(sql: String, callback: (self: Any?) -> Unit = definedExternally): Database /* this */
 
         //open fun prepare(sql: String, callback: (self: Statement, err: Error?) -> Unit = definedExternally): Statement
@@ -207,13 +254,21 @@ external object Sqlite3 {
         open fun parallelize(callback: () -> Unit = definedExternally)
         open fun on(event: String /* "trace" */, listener: (sql: String) -> Unit): Database /* this */
         open fun on(event: String /* "profile" */, listener: (sql: String, time: Number) -> Unit): Database /* this */
-        open fun on(event: String /* "change" */, listener: (type: String, database: String, table: String, rowid: Number) -> Unit): Database /* this */
+        open fun on(
+            event: String /* "change" */,
+            listener: (type: String, database: String, table: String, rowid: Number) -> Unit
+        ): Database /* this */
+
         open fun on(event: String /* "error" */, listener: (err: Error) -> Unit): Database /* this */
         open fun on(event: String /* "open" | "close" */, listener: () -> Unit): Database /* this */
         override fun on(eventName: String, listener: (args: Any) -> Unit): Database /* this */
         open fun configure(option: String /* "busyTimeout" */, value: Number)
         open fun configure(option: String /* "limit" */, id: Number, value: Number)
-        open fun loadExtension(filename: String, callback: (err: Error?) -> Unit = definedExternally): Database /* this */
+        open fun loadExtension(
+            filename: String,
+            callback: (err: Error?) -> Unit = definedExternally
+        ): Database /* this */
+
         open fun wait(callback: (param: Nothing?) -> Unit = definedExternally): Database /* this */
         open fun interrupt()
     }

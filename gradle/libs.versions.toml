@@ -4,7 +4,7 @@ kotlinCoroutines = "1.6.4"
 schemaCrawler = "16.19.2"
 stately = "1.2.3"
 node-sqlite3 = "5.1.4"
-sqldelight = "2.0.0-alpha05"
+sqldelight = "2.0.0-rc01"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
