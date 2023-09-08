@@ -10,7 +10,7 @@ typealias InsertFunction = suspend (SqlPreparedStatement.() -> Unit) -> Unit
 
 class SQLite3DriverTest {
     private val schema = object : SqlSchema<QueryResult.AsyncValue<Unit>> {
-        override val version: Int = 1
+        override val version = 1L
 
         override fun create(driver: SqlDriver): QueryResult.AsyncValue<Unit> = QueryResult.AsyncValue {
             driver.execute(
@@ -40,10 +40,10 @@ class SQLite3DriverTest {
 
         override fun migrate(
             driver: SqlDriver,
-            oldVersion: Int,
-            newVersion: Int,
-            vararg callbacks: AfterVersion,
-        ) = QueryResult.AsyncValue {}
+            oldVersion: Long,
+            newVersion: Long,
+            vararg callbacks: AfterVersion
+        ): QueryResult.AsyncValue<Unit> = QueryResult.AsyncValue {}
     }
 
     private fun runTest(block: suspend (SqlDriver) -> Unit) = kotlinx.coroutines.test.runTest {
@@ -52,6 +52,7 @@ class SQLite3DriverTest {
             val driver = initSqlite3SqlDriver("test.db", schema = schema)
             println("db test.db created")
             block(driver)
+            driver._finalizeAllStatements()
             driver.close()
             println("deleting db")
             js("require('fs').unlinkSync('test.db')")
