@@ -36,7 +36,7 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
         override fun endTransaction(successful: Boolean): QueryResult<Unit> = QueryResult.AsyncValue {
             if (enclosingTransaction == null) {
                 val sql = if (successful) "END TRANSACTION" else "ROLLBACK TRANSACTION"
-                suspendCoroutine { cont ->
+                suspendCoroutine<Any?> { cont ->
                     val callback: (Any?) -> Unit = {
                         if (it == null || it !is Throwable) {
                             cont.resume(it)
@@ -119,7 +119,7 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
         val transaction = Transaction(enclosing)
         this.transaction = transaction
         if (enclosing == null) {
-            suspendCoroutine { cont ->
+            suspendCoroutine<Any?> { cont ->
                 val callback: (Any?) -> Unit = {
                     if (it == null || it !is Throwable) {
                         cont.resume(it)
@@ -138,20 +138,34 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
 
     internal fun _endTransactionForTests(successful: Boolean) = transaction?._endTransactionForTests(successful)
 
+    internal suspend fun _finalizeAllStatements() {
+        statements.onEach { statement ->
+            suspendCoroutine<Any?> { cont ->
+                val callback: (err: Error?) -> Unit = {
+                    if (it == null) {
+                        cont.resume(it)
+                    } else {
+                        cont.resumeWithException(SQLite3JsException(it))
+                    }
+                }
+                statement.value.finalize(callback)
+            }
+        }
+    }
 
-    override fun addListener(listener: Query.Listener, queryKeys: Array<String>) {
+    override fun addListener(vararg queryKeys: String, listener: Query.Listener) {
         queryKeys.forEach {
             listeners.getOrPut(it) { mutableSetOf() }.add(listener)
         }
     }
 
-    override fun removeListener(listener: Query.Listener, queryKeys: Array<String>) {
+    override fun removeListener(vararg queryKeys: String, listener: Query.Listener) {
         queryKeys.forEach {
             listeners[it]?.remove(listener)
         }
     }
 
-    override fun notifyListeners(queryKeys: Array<String>) {
+    override fun notifyListeners(vararg queryKeys: String) {
         queryKeys.flatMap { listeners[it].orEmpty() }
             .distinct()
             .forEach(Query.Listener::queryResultsChanged)
@@ -170,7 +184,7 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
         if (parameters > 0) {
             val bound = SQLite3PreparedStatement(parameters)
             binders(bound)
-            suspendCoroutine { cont ->
+            suspendCoroutine<Any?> { cont ->
                 val callback: (Any?) -> Unit = {
                     if (it == null || it !is Throwable) {
                         cont.resume(it)

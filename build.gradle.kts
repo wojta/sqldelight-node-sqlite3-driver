@@ -1,19 +1,22 @@
 import io.gitlab.arturbosch.detekt.Detekt
+import kotlinx.kover.gradle.plugin.dsl.KoverReportExtension
 import org.jetbrains.kotlin.gradle.targets.js.yarn.yarn
 import java.util.*
+import javax.xml.catalog.CatalogFeatures.defaults
 
 plugins {
-    kotlin("multiplatform") version "1.8.20"
+    val kotlinVersion = "1.9.20-Beta"
+    kotlin("multiplatform") version kotlinVersion
     //id("dev.petuska.npm.publish") version "2.1.1"
     id("io.gitlab.arturbosch.detekt").version("1.23.0-RC2")
-    id("org.jetbrains.dokka") version "1.8.10"
-    id("org.jetbrains.kotlinx.kover") version "0.6.1"
+    id("org.jetbrains.dokka") version "1.9.0"
+    id("org.jetbrains.kotlinx.kover") version "0.7.3"
     id("maven-publish")
     id("signing")
 }
 
 val defaultGroupId = "cz.sazel.sqldelight"
-val versionBase = "0.2.0"
+val versionBase = "0.3.0"
 
 val localProperties = Properties().apply {
     try {
@@ -67,8 +70,6 @@ kotlin {
             dependencies {
                 implementation(kotlin("stdlib-common"))
                 implementation(libs.kotlin.coroutines.core)
-
-
             }
         }
         val commonTest by getting {
@@ -85,11 +86,12 @@ kotlin {
             }
         }
         val jsTest by getting {
-            kover {
-                htmlReport {
-                    onCheck.set(true)
+            extensions.configure<KoverReportExtension> {
+                defaults {
+                    html {
+                        onCheck = true
+                    }
                 }
-                isDisabled.set(false)
             }
         }
 
@@ -220,18 +222,11 @@ val bindingsInstall = tasks.register("sqlite3BindingsInstall") {
 }.get()
 tasks["kotlinNpmInstall"].finalizedBy(bindingsInstall)
 
-koverMerged {
-    htmlReport {
-        onCheck.set(true)
-    }
-    enable()
-}
-
 detekt {
     buildUponDefaultConfig = true // preconfigure defaults
     allRules = false // activate all available (even unstable) rules.
     config.setFrom("$projectDir/gradle/detekt/detekt.yml") // point to your custom config defining rules to run, overwriting default behavior
- //   baseline = file("$projectDir/config/baseline.xml") // a way of suppressing issues before introducing detekt
+    //   baseline = file("$projectDir/config/baseline.xml") // a way of suppressing issues before introducing detekt
 }
 
 tasks.withType<Detekt>().configureEach {

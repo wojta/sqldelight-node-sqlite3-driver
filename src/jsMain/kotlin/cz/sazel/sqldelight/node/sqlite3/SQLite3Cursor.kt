@@ -52,7 +52,6 @@ internal class SQLite3Cursor(val statementInit: suspend () -> Sqlite3.Statement)
                 if (err == null) cont.resume(Unit) else cont.resumeWithException(SQLite3JsException(err))
             }
             statement.finalize(callback)
-
         }
     }
 
