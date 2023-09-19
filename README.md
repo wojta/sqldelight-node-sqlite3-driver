@@ -10,14 +10,14 @@ Driver for the library [SQLDelight](https://github.com/cashapp/sqldelight) that 
 
 ## Gradle set up 
 
-Pretty much it's almost the same as with https://cashapp.github.io/sqldelight/2.0.0-rc01/js_sqlite/
+Pretty much it's almost the same as with https://cashapp.github.io/sqldelight/2.0.0/js_sqlite/
 
 Initialization of SQLDelight is needed
 
 ```kotlin
 plugins {
-    kotlin("js") version "1.8.0" // probably would work even with different one
-    id("app.cash.sqldelight") version "2.0.0-rc01" // for version 0.2.0
+    kotlin("js") version "1.9.20" // probably would work even with different one
+    id("app.cash.sqldelight") version "2.0.0" // for version 0.3.0
 }
 ፧
 ፧
@@ -40,7 +40,7 @@ kotlin {
         binaries.executable()
         nodejs {
             dependencies {
-                implementation("cz.sazel.sqldelight:node-sqlite3-driver-js:0.2.0")
+                implementation("cz.sazel.sqldelight:node-sqlite3-driver-js:0.3.0")
             }
         }
     }
@@ -70,7 +70,7 @@ tasks["kotlinNpmInstall"].finalizedBy(bindingsInstall)
 
 
 
-Queries are written as here - https://cashapp.github.io/sqldelight/2.0.0-rc01/js_sqlite/
+Queries are written as here - https://cashapp.github.io/sqldelight/2.0.0/js_sqlite/
 
 
 ```kotlin
