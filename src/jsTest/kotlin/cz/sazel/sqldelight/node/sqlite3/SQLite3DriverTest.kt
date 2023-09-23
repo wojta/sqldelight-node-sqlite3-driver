@@ -52,7 +52,6 @@ class SQLite3DriverTest {
             val driver = initSqlite3SqlDriver("test.db", schema = schema)
             println("db test.db created")
             block(driver)
-            driver._finalizeAllStatements()
             driver.close()
             println("deleting db")
             js("require('fs').unlinkSync('test.db')")
