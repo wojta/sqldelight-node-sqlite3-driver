@@ -24,7 +24,11 @@ internal class SQLite3Cursor(val statementInit: suspend () -> Sqlite3.Statement)
             reset()
             initialized = true
         }
-        row = fetchRow() ?: return@AsyncValue false
+        row = fetchRow()
+        if (row == null) {
+            _close()
+            return@AsyncValue false
+        }
         counter++
         true
     }
@@ -47,12 +51,7 @@ internal class SQLite3Cursor(val statementInit: suspend () -> Sqlite3.Statement)
 
     @Suppress("FunctionNaming")
     internal suspend fun _close() {
-        suspendCoroutine { cont ->
-            val callback: (Error?) -> Unit = { err ->
-                if (err == null) cont.resume(Unit) else cont.resumeWithException(SQLite3JsException(err))
-            }
-            statement.finalize(callback)
-        }
+        statement.finalizeSuspending()
     }
 
     private suspend fun reset() {
@@ -61,7 +60,6 @@ internal class SQLite3Cursor(val statementInit: suspend () -> Sqlite3.Statement)
                 cont.resume(Unit)
             }
             statement.reset(callback)
-
         }
     }
 

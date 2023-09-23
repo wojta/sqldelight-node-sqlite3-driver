@@ -25,16 +25,30 @@ private fun initSqlite3Database(
 internal suspend fun SQLite3Driver.withSchema(schema: SqlSchema<QueryResult.AsyncValue<Unit>>? = null) =
     this.also { schema?.create(it)?.await() }
 
+internal suspend fun (Sqlite3.Statement).finalizeSuspending() {
+    suspendCoroutine<Any?> { cont ->
+        val callback: (err: Error?) -> Unit = {
+            if (it == null) {
+                cont.resume(it)
+            } else {
+                cont.resumeWithException(SQLite3JsException(it))
+            }
+        }
+        finalize(callback)
+    }
+}
+
 class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : SqlDriver {
     private val listeners = mutableMapOf<String, MutableSet<Query.Listener>>()
-    private val statements = mutableMapOf<Int, Sqlite3.Statement>()
     private var transaction: Transaction? = null
 
     internal inner class Transaction(
         override val enclosingTransaction: Transacter.Transaction?,
     ) : Transacter.Transaction() {
+        internal val statements = mutableMapOf<Int, Sqlite3.Statement>()
         override fun endTransaction(successful: Boolean): QueryResult<Unit> = QueryResult.AsyncValue {
             if (enclosingTransaction == null) {
+                statements.onEach { it.value.finalizeSuspending() }
                 val sql = if (successful) "END TRANSACTION" else "ROLLBACK TRANSACTION"
                 suspendCoroutine<Any?> { cont ->
                     val callback: (Any?) -> Unit = {
@@ -73,9 +87,9 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
         val res = if (identifier == null) {
             preparedStatement
         } else {
-            statements.getOrPut(identifier) {
+            transaction?.statements?.getOrPut(identifier) {
                 return@getOrPut preparedStatement
-            }
+            } ?: preparedStatement
         }
         return res
     }
@@ -95,6 +109,9 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
                 }
             }
             statement.run(callback)
+        }
+        if (transaction == null) {
+            statement.finalizeSuspending()
         }
         return@AsyncValue 0
     }
@@ -137,21 +154,6 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
     override fun currentTransaction(): Transacter.Transaction? = transaction
 
     internal fun _endTransactionForTests(successful: Boolean) = transaction?._endTransactionForTests(successful)
-
-    internal suspend fun _finalizeAllStatements() {
-        statements.onEach { statement ->
-            suspendCoroutine<Any?> { cont ->
-                val callback: (err: Error?) -> Unit = {
-                    if (it == null) {
-                        cont.resume(it)
-                    } else {
-                        cont.resumeWithException(SQLite3JsException(it))
-                    }
-                }
-                statement.value.finalize(callback)
-            }
-        }
-    }
 
     override fun addListener(vararg queryKeys: String, listener: Query.Listener) {
         queryKeys.forEach {
