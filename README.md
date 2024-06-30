@@ -48,16 +48,22 @@ kotlin {
 ```
 
 You'll also need to install binary bindings for SQLite3. This can be done by adding a special Gradle task that runs yarn
-in the `sqlite3` node package directory.
+in the `sqlite3` node package directory. It needs to run `yarn` first to dowload platform specific binary dependencies.
 
 ```kotlin
 val bindingsInstall = tasks.register("sqlite3BindingsInstall") {
     doLast {
-        val sqlite3moduleDir = rootProject.buildDir.resolve("js/node_modules/sqlite3")
+        val sqlite3moduleDir = buildDir.resolve("js/node_modules/sqlite3")
         if (!sqlite3moduleDir.resolve("lib/binding").exists()) {
             exec {
                 workingDir = sqlite3moduleDir
-                val commandLine = "${yarn.yarnSetupTaskProvider.get().destination.absolutePath}/bin/yarn"
+                val yarnPath="${yarn.yarnSetupTaskProvider.get().destination.absolutePath}/bin"
+                val nodePath="${kotlinNodeJsExtension.nodeJsSetupTaskProvider.get().destination.absolutePath}/bin"
+                environment(
+                    "PATH",
+                    System.getenv("PATH") + ":$yarnPath:$nodePath"
+                )
+                var commandLine = "$yarnPath/yarn"
                 commandLine(commandLine)
             }
         }
