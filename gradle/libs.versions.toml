@@ -1,10 +1,10 @@
 [versions]
-kotlin = "1.9.20-Beta"
-kotlinCoroutines = "1.6.4"
+kotlin = "2.0.20-Beta1"
+kotlinCoroutines = "1.9.0-RC"
 schemaCrawler = "16.19.2"
 stately = "1.2.3"
 node-sqlite3 = "5.1.6"
-sqldelight = "2.0.0"
+sqldelight = "2.0.2"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }

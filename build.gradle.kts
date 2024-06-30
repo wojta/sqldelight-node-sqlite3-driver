@@ -1,11 +1,13 @@
 import io.gitlab.arturbosch.detekt.Detekt
 import kotlinx.kover.gradle.plugin.dsl.KoverReportExtension
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin.Companion.kotlinNodeJsExtension
 import org.jetbrains.kotlin.gradle.targets.js.yarn.yarn
 import java.util.*
-import javax.xml.catalog.CatalogFeatures.defaults
 
 plugins {
-    val kotlinVersion = "1.9.20-Beta"
+    val kotlinVersion = "2.0.20-Beta1"
     kotlin("multiplatform") version kotlinVersion
     //id("dev.petuska.npm.publish") version "2.1.1"
     id("io.gitlab.arturbosch.detekt").version("1.23.0-RC2")
@@ -186,9 +188,9 @@ kotlin {
 
 
 
-    plugins.withType<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin> {
-        configure<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension> {
-            nodeVersion = "18.14.2"
+    plugins.withType<NodeJsRootPlugin> {
+        configure<NodeJsRootExtension> {
+            version = "18.14.2"
         }
     }
 
@@ -209,12 +211,21 @@ kotlin {
 
 // workaround for missing sqlite3 bindings
 val bindingsInstall = tasks.register("sqlite3BindingsInstall") {
+    doFirst {
+
+    }
     doLast {
         val sqlite3moduleDir = buildDir.resolve("js/node_modules/sqlite3")
         if (!sqlite3moduleDir.resolve("lib/binding").exists()) {
             exec {
                 workingDir = sqlite3moduleDir
-                val commandLine = yarn.yarnSetupTaskProvider.get().destination.absolutePath + "/bin/yarn"
+                val yarnPath="${yarn.yarnSetupTaskProvider.get().destination.absolutePath}/bin"
+                val nodePath="${kotlinNodeJsExtension.nodeJsSetupTaskProvider.get().destination.absolutePath}/bin"
+                environment(
+                    "PATH",
+                    System.getenv("PATH") + ":$yarnPath:$nodePath"
+                )
+                var commandLine = "$yarnPath/yarn"
                 commandLine(commandLine)
             }
         }
