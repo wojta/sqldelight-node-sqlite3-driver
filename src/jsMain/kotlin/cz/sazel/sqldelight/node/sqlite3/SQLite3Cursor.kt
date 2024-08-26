@@ -92,7 +92,6 @@ internal class SQLite3Cursor(val statementInit: suspend () -> Sqlite3.Statement)
     }
 
     override fun getBoolean(index: Int): Boolean? {
-        checkCursorState()
-        return row?.get(index) as Boolean?
+        return getLong(index)?.let { it != 0L }
     }
 }
