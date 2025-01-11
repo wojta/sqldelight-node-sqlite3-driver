@@ -31,7 +31,8 @@ class SQLite3DriverTest {
               |  integer_value INTEGER,
               |  text_value TEXT,
               |  blob_value BLOB,
-              |  real_value REAL
+              |  real_value REAL,
+              |  bool_value BOOLEAN
               |);
         """.trimMargin(),
                 0,
@@ -178,7 +179,7 @@ class SQLite3DriverTest {
     @Test
     fun sqlResultSet_getters_return_null_if_the_column_values_are_NULL() = runTest { driver ->
         val insert: InsertFunction = { binders: SqlPreparedStatement.() -> Unit ->
-            driver.await(7, "INSERT INTO nullability_test VALUES (?, ?, ?, ?, ?);", 5, binders)
+            driver.await(7, "INSERT INTO nullability_test VALUES (?, ?, ?, ?, ?, ?);", 6, binders)
         }
 
         suspend fun changes(mapper: suspend (SqlCursor) -> Long?): Long? {
@@ -191,6 +192,7 @@ class SQLite3DriverTest {
             bindString(2, null)
             bindBytes(3, null)
             bindDouble(4, null)
+            bindBoolean(5, null)
         }
 
         val mapper: suspend (SqlCursor) -> Unit = {
@@ -200,6 +202,7 @@ class SQLite3DriverTest {
             assertNull(it.getString(2))
             assertNull(it.getBytes(3))
             assertNull(it.getDouble(4))
+            assertNull(it.getBoolean(5))
         }
         driver.awaitQuery(8, "SELECT * FROM nullability_test", mapper, 0)
         changes { it.next().await(); it.getLong(0) }
@@ -208,7 +211,7 @@ class SQLite3DriverTest {
     @Test
     fun types_are_correctly_converted_from_JS_to_Kotlin_and_back() = runTest { driver ->
         val insert: InsertFunction = { binders: SqlPreparedStatement.() -> Unit ->
-            driver.await(7, "INSERT INTO nullability_test VALUES (?, ?, ?, ?, ?);", 5, binders)
+            driver.await(7, "INSERT INTO nullability_test VALUES (?, ?, ?, ?, ?, ?);", 6, binders)
         }
 
         insert {
@@ -217,6 +220,7 @@ class SQLite3DriverTest {
             bindString(2, "Hello")
             bindBytes(3, ByteArray(5) { it.toByte() })
             bindDouble(4, Float.MAX_VALUE.toDouble())
+            bindBoolean(5, true)
         }
 
         val mapper: suspend (SqlCursor) -> Unit = {
@@ -226,6 +230,7 @@ class SQLite3DriverTest {
             assertEquals("Hello", it.getString(2))
             it.getBytes(3)?.forEachIndexed { index, byte -> assertEquals(index.toByte(), byte) }
             assertEquals(Float.MAX_VALUE.toDouble(), it.getDouble(4))
+            assertEquals(true, it.getBoolean(5))
         }
         driver.awaitQuery(8, "SELECT * FROM nullability_test", mapper, 0)
     }
