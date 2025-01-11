@@ -1,24 +1,21 @@
-import io.gitlab.arturbosch.detekt.Detekt
-import kotlinx.kover.gradle.plugin.dsl.KoverReportExtension
-import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension
-import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin
-import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin.Companion.kotlinNodeJsExtension
+@file:OptIn(ExperimentalKotlinGradlePluginApi::class)
+
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsPlugin.Companion.kotlinNodeJsEnvSpec
 import org.jetbrains.kotlin.gradle.targets.js.yarn.yarn
 import java.util.*
 
 plugins {
-    val kotlinVersion = "2.0.20-Beta1"
-    kotlin("multiplatform") version kotlinVersion
-    //id("dev.petuska.npm.publish") version "2.1.1"
-    id("io.gitlab.arturbosch.detekt").version("1.23.0-RC2")
-    id("org.jetbrains.dokka") version "1.9.0"
-    id("org.jetbrains.kotlinx.kover") version "0.7.3"
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.dokka)
+    alias(libs.plugins.kover)
     id("maven-publish")
     id("signing")
 }
 
 val defaultGroupId = "cz.sazel.sqldelight"
-val versionBase = "0.3.0"
+val versionBase = "0.4.0"
 
 val localProperties = Properties().apply {
     try {
@@ -58,6 +55,7 @@ kotlin {
 
         useCommonJs()
         nodejs {
+            version = libs.versions.node.js.get()
             testTask {
                 // debug=true
             }
@@ -88,25 +86,25 @@ kotlin {
             }
         }
         val jsTest by getting {
-            extensions.configure<KoverReportExtension> {
-                defaults {
-                    html {
-                        onCheck = true
-                    }
-                }
-            }
+
         }
 
         val publicationsFromMainHost =
             listOf(js()).map { it.name } + "kotlinMultiplatform"
 
-        val javadocJar = tasks.register<Jar>("javadocJar") {
-            dependsOn(tasks.dokkaHtml)
-            archiveClassifier.set("javadoc")
-            from("$buildDir/dokka")
+        dokka {
+            moduleName = "node-sqlite3-driver"
+            moduleVersion = versionStr
+
+            dokkaSourceSets {
+                val jsMain by getting {
+
+                }
+            }
         }
 
         publishing {
+
             publications {
                 matching { it.name in publicationsFromMainHost }.all {
                     val targetPublication = this@all
@@ -117,7 +115,7 @@ kotlin {
 
 
                 withType<MavenPublication> {
-                    artifact(javadocJar)
+                    artifact(layout.buildDirectory.dir("dokka"))
 
                     pom {
                         name.set("node-sqlite3-driver")
@@ -176,7 +174,7 @@ kotlin {
             }
         }
 
-        extensions.configure<SigningExtension> {
+        signing {
             useInMemoryPgpKeys(
                 System.getenv("GPG_KEY_SECRET") ?: localProperties["gpg.keySecret"] as String?,
                 System.getenv("GPG_KEY_PASSWORD") ?: localProperties["gpg.keyPassword"] as String?
@@ -185,28 +183,6 @@ kotlin {
             sign(publishing.publications)
         }
     }
-
-
-
-    plugins.withType<NodeJsRootPlugin> {
-        configure<NodeJsRootExtension> {
-            version = "18.14.2"
-        }
-    }
-
-//    npmPublishing {
-//        organization = "wojta"
-//        access = RESTRICTED
-//
-//        repositories {
-//            repository("npmjs") {
-//                registry = uri("https://npm.pkg.github.com") // Registry to publish to
-//                authToken = localProperties["github.token"] as String?
-//                    ?: System.getenv("GITHUB_TOKEN")// NPM registry authentication token
-//            }
-//        }
-//    }
-
 }
 
 // workaround for missing sqlite3 bindings
@@ -215,18 +191,17 @@ val bindingsInstall = tasks.register("sqlite3BindingsInstall") {
 
     }
     doLast {
-        val sqlite3moduleDir = buildDir.resolve("js/node_modules/sqlite3")
-        if (!sqlite3moduleDir.resolve("lib/binding").exists()) {
+        val sqlite3moduleDir = layout.buildDirectory.get().dir("js/node_modules/sqlite3").asFile
+        if (!sqlite3moduleDir.resolve("build").exists()) {
             exec {
                 workingDir = sqlite3moduleDir
-                val yarnPath="${yarn.yarnSetupTaskProvider.get().destination.absolutePath}/bin"
-                val nodePath="${kotlinNodeJsExtension.nodeJsSetupTaskProvider.get().destination.absolutePath}/bin"
+                val yarnExecutable = yarn.environment.executable
+                val yarnPath = file(yarnExecutable).parent
+                val nodePath = file(kotlinNodeJsEnvSpec.executable).parent
                 environment(
-                    "PATH",
-                    System.getenv("PATH") + ":$yarnPath:$nodePath"
+                    "PATH", System.getenv("PATH") + ":$yarnPath:$nodePath"
                 )
-                var commandLine = "$yarnPath/yarn"
-                commandLine(commandLine)
+                commandLine(yarnExecutable)
             }
         }
     }
@@ -238,10 +213,9 @@ detekt {
     allRules = false // activate all available (even unstable) rules.
     config.setFrom("$projectDir/gradle/detekt/detekt.yml") // point to your custom config defining rules to run, overwriting default behavior
     //   baseline = file("$projectDir/config/baseline.xml") // a way of suppressing issues before introducing detekt
-}
 
-tasks.withType<Detekt>().configureEach {
     reports {
         html.required.set(true) // observe findings in your browser with structure and code snippets
     }
 }
+
