@@ -11,3 +11,8 @@ local.properties
 .gradle
 build
 kotlin-js-store
+
+node_modules
+kotlin-js-store
+
+yarn.lock

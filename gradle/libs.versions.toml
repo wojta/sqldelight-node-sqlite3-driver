@@ -1,23 +1,22 @@
 [versions]
-kotlin = "2.0.20-Beta1"
-kotlinCoroutines = "1.9.0-RC"
-schemaCrawler = "16.19.2"
-stately = "1.2.3"
-node-sqlite3 = "5.1.6"
+detekt = "1.23.7"
+dokka = "2.0.0"
+kotlin = "2.1.20-Beta1"
+kotlinCoroutines = "1.10.1"
+kover = "0.9.1"
+node-sqlite3 = "5.1.7"
+node-js = "18.14.2"
 sqldelight = "2.0.2"
 
 [libraries]
-kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
-kotlin-test-js = { module = "org.jetbrains.kotlin:kotlin-test-js", version.ref = "kotlin" }
 kotlin-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinCoroutines" }
 kotlin-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinCoroutines" }
-kotlin-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
-stately-core = { module = "co.touchlab:stately-common", version.ref = "stately" }
-stately-concurrency = { module = "co.touchlab:stately-concurrency", version.ref = "stately" }
-stately-collections = { module = "co.touchlab:stately-collections", version.ref = "stately" }
 sqldelight-async-extensions-js = { module = "app.cash.sqldelight:async-extensions-js", version.ref = "sqldelight" }
 sqldelight-runtime-js = { module = "app.cash.sqldelight:runtime-js", version.ref = "sqldelight" }
 
 [plugins]
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-js = { id = "org.jetbrains.kotlin.js", version.ref = "kotlin" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
