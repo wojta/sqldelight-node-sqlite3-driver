@@ -106,7 +106,7 @@ jobs:
       - name: Generate docs with dokka
         env:
           PACKAGE_VERSION: ${{ github.event.release.tag_name }}
-        run: ./gradlew dokkaHtml
+        run: ./gradlew dokkaGeneratePublicationHtml
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
