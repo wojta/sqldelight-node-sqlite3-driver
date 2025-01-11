@@ -48,6 +48,7 @@ repositories {
 
 kotlin {
 
+
     js(IR) {
         compilations.all {
             kotlinOptions.moduleKind = "commonjs"
@@ -55,7 +56,7 @@ kotlin {
 
         useCommonJs()
         nodejs {
-            version = libs.versions.node.js.get()
+            kotlinNodeJsEnvSpec.version.set(libs.versions.node.js.get())
             testTask {
                 // debug=true
             }
@@ -103,6 +104,12 @@ kotlin {
             }
         }
 
+        val javadocJar = tasks.register<Jar>("javadocJar") {
+            dependsOn(tasks.dokkaGenerate.get())
+            archiveClassifier.set("javadoc")
+            from(layout.buildDirectory.dir("dokka/html"))
+        }
+
         publishing {
 
             publications {
@@ -115,7 +122,7 @@ kotlin {
 
 
                 withType<MavenPublication> {
-                    artifact(layout.buildDirectory.dir("dokka"))
+                    artifact(javadocJar)
 
                     pom {
                         name.set("node-sqlite3-driver")
