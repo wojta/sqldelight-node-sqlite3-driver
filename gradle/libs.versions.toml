@@ -5,7 +5,7 @@ kotlin = "2.1.20-Beta1"
 kotlinCoroutines = "1.10.1"
 kover = "0.9.1"
 node-sqlite3 = "5.1.7"
-node-js = "18.14.2"
+node-js = "22.13.0"
 sqldelight = "2.0.2"
 
 [libraries]
