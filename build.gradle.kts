@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.detekt)
     alias(libs.plugins.dokka)
     alias(libs.plugins.kover)
+    alias(libs.plugins.sqldelight)
     id("maven-publish")
     id("signing")
 }
@@ -87,7 +88,15 @@ kotlin {
             }
         }
         val jsTest by getting {
+            sqldelight {
+                databases {
+                    create("Database") {
+                        packageName.set("com.example")
+                        generateAsync.set(true)
 
+                    }
+                }
+            }
         }
 
         val publicationsFromMainHost =
@@ -178,6 +187,7 @@ kotlin {
                         password = System.getenv("SONATYPE_PASSWORD") ?: localProperties["sonatype.password"] as String?
                     }
                 }
+                mavenLocal()
             }
         }
 
