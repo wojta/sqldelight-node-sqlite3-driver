@@ -9,7 +9,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
-internal class SQLite3Cursor(val statementInit: suspend () -> Sqlite3.Statement) : SqlCursor {
+internal class SQLite3Cursor internal constructor(val statementInit: suspend () -> Sqlite3.Statement) : SqlCursor {
 
     private val jsObject = js("Object") //TODO this is weird, find way to improve
     private lateinit var statement: Sqlite3.Statement
@@ -26,7 +26,6 @@ internal class SQLite3Cursor(val statementInit: suspend () -> Sqlite3.Statement)
         }
         row = fetchRow()
         if (row == null) {
-            _close()
             return@AsyncValue false
         }
         counter++
@@ -47,11 +46,6 @@ internal class SQLite3Cursor(val statementInit: suspend () -> Sqlite3.Statement)
             statement = statement.get(callback)
         }
         return result
-    }
-
-    @Suppress("FunctionNaming")
-    internal suspend fun _close() {
-        statement.finalizeSuspending()
     }
 
     private suspend fun reset() {

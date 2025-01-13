@@ -2,31 +2,42 @@ package cz.sazel.sqldelight.node.sqlite3
 
 import app.cash.sqldelight.Query
 import app.cash.sqldelight.db.QueryResult
-import app.cash.sqldelight.db.SqlCursor
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.toList
 
 /**
  * Workaround suspending method to use with SQLite3 async driver.
  * Use this instead of non-async method [Query.executeAsList].
  * @return The result set of the underlying SQL statement as a list of RowType.
  */
-suspend fun <T : Any> Query<T>.executeSuspendingAsList(): List<T> {
-    val list = execute<List<T>> { cursor ->
-        QueryResult.AsyncValue {
-            val result = mutableListOf<T>()
-            while (cursor.next().await()) result.add(mapper(cursor))
-            result
-        }
-    }.await()
-    return list
-}
+suspend fun <T : Any> Query<T>.executeSuspendingAsList(): List<T> =
+    executeAsFlow().toList(mutableListOf())
 
 /**
- * Function that must be used only with [SQLite3Cursor], used to close cursor when no longer used.
+ * Workaround suspending method to use with SQLite3 async driver.
+ * Use this instead of non-async method [Query.executeAsList].
+ * @return The result set of the underlying SQL statement as a list of RowType.
  */
-suspend fun SqlCursor.close() {
-    require(this is SQLite3Cursor)
-    _close()
-}
+suspend fun <T : Any> Query<T>.executeAsFlow(): Flow<T> =
+    coroutineScope {
+        execute<Flow<T>> { cursor ->
+            return@execute QueryResult.Value(callbackFlow {
+                do {
+                    val hasNext = cursor.next().await()
+                    if (!hasNext) {
+                        close()
+                    } else {
+                        val row = mapper(cursor)
+                        send(row)
+                    }
+                } while (hasNext)
+                awaitClose()
+            })
+        }.await()
+    }
 
 internal val <T> T?.nullable: T?
     get() = when (this) {
