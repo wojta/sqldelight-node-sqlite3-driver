@@ -20,3 +20,4 @@ dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-js = { id = "org.jetbrains.kotlin.js", version.ref = "kotlin" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
