@@ -57,10 +57,10 @@ class DriverWithLibraryTest {
         try {
             transaction {
                 playerQueries.insertFullPlayerObject(insertedPlayer)
-                throw RuntimeException("Rollback")
+                error("Rollback")
             }
         } catch (e: Exception) {
-
+            // do nothing
         } finally {
             playerQueries.selectAll().executeAsFlow().toCollection(mutableListOf()).let {
                 assertContains(it, initialPlayer)
