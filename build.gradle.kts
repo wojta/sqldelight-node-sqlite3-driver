@@ -90,17 +90,15 @@ kotlin {
         val jsTest by getting {
             sqldelight {
                 databases {
-                    create("Database") {
-                        packageName.set("com.example")
+                    create("TestDatabaseDontUse") {
+                        packageName.set("cz.sazel.sqldelight._dont_use")
                         generateAsync.set(true)
-
                     }
                 }
             }
         }
 
-        val publicationsFromMainHost =
-            listOf(js()).map { it.name } + "kotlinMultiplatform"
+        val publicationsFromMainHost = listOf(js()).map { it.name } + "kotlinMultiplatform"
 
         dokka {
             moduleName = "node-sqlite3-driver"
@@ -124,8 +122,7 @@ kotlin {
             publications {
                 matching { it.name in publicationsFromMainHost }.all {
                     val targetPublication = this@all
-                    tasks.withType<AbstractPublishToMaven>()
-                        .matching { it.publication == targetPublication }
+                    tasks.withType<AbstractPublishToMaven>().matching { it.publication == targetPublication }
                         .configureEach { onlyIf { findProperty("isMainHost") == "true" } }
                 }
 
@@ -235,4 +232,3 @@ detekt {
         html.required.set(true) // observe findings in your browser with structure and code snippets
     }
 }
-

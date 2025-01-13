@@ -1,7 +1,7 @@
 package cz.sazel.sqldelight.node.sqlite3
 
-import com.example.Database
-import com.example.HockeyPlayer
+import cz.sazel.sqldelight.dontuse.HockeyPlayer
+import cz.sazel.sqldelight.dontuse.TestDataBaseDontUseQueries
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.test.runTest
@@ -9,9 +9,12 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
+typealias Database = cz.sazel.sqldelight._dont_use.TestDatabaseDontUse
+
 class DriverWithLibraryTest {
 
     private lateinit var driver: SQLite3Driver
+    private lateinit var playerQueries: TestDataBaseDontUseQueries
     private val dbName = "driver_test.db"
 
     private fun withDatabase(fn: suspend Database.() -> Unit) = runTest {
@@ -20,6 +23,7 @@ class DriverWithLibraryTest {
         try {
             driver = initSqlite3SqlDriver(filename = "driver_test.db", schema = Database.Schema)
             val database = Database(driver)
+            playerQueries = database.testDataBaseDontUseQueries
             database.fn()
         } finally {
             js("require('fs').unlinkSync(dbName)")
