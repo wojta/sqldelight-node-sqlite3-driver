@@ -1,9 +1,8 @@
 package cz.sazel.sqldelight.node.sqlite3
 
+import app.cash.sqldelight.async.coroutines.awaitAsList
 import cz.sazel.sqldelight.dontuse.HockeyPlayer
 import cz.sazel.sqldelight.dontuse.TestDataBaseDontUseQueries
-import kotlinx.coroutines.flow.take
-import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -32,7 +31,7 @@ class DriverWithLibraryTest {
 
     @Test
     fun testInitialContents() = withDatabase {
-        playerQueries.selectAll().executeAsFlow().toCollection(mutableListOf()).let {
+        playerQueries.selectAll().awaitAsList().let {
             assertEquals(initialPlayer, it.first())
             assertEquals(1, it.size)
         }
@@ -44,7 +43,7 @@ class DriverWithLibraryTest {
         transaction {
             playerQueries.insertFullPlayerObject(insertedPlayer)
         }
-        playerQueries.selectAll().executeAsFlow().toCollection(mutableListOf()).let {
+        playerQueries.selectAll().awaitAsList().let {
             assertContains(it, initialPlayer)
             assertContains(it, insertedPlayer)
             assertEquals(2, it.size)
@@ -62,7 +61,7 @@ class DriverWithLibraryTest {
         } catch (e: Exception) {
             // do nothing
         } finally {
-            playerQueries.selectAll().executeAsFlow().toCollection(mutableListOf()).let {
+            playerQueries.selectAll().awaitAsList().let {
                 assertContains(it, initialPlayer)
                 assertEquals(1, it.size)
             }
@@ -77,7 +76,7 @@ class DriverWithLibraryTest {
                 playerQueries.insertFullPlayerObject(it)
             }
         }
-        playerQueries.selectAll().executeAsFlow().take(4).toCollection(mutableListOf()).let {
+        playerQueries.selectAll().awaitAsList().take(4).let {
             println(it)
             assertContains(it, initialPlayer)
             assertEquals(4, it.size)
@@ -90,7 +89,7 @@ class DriverWithLibraryTest {
         transaction {
             playerQueries.updateName(updatedPlayer.full_name, initialPlayer.player_number)
         }
-        playerQueries.selectAll().executeAsFlow().toCollection(mutableListOf()).let {
+        playerQueries.selectAll().awaitAsList().let {
             assertContains(it, updatedPlayer)
             assertEquals(1, it.size)
         }
@@ -101,7 +100,7 @@ class DriverWithLibraryTest {
         transaction {
             playerQueries.deletePlayer(initialPlayer.player_number)
         }
-        playerQueries.selectAll().executeAsFlow().toCollection(mutableListOf()).let {
+        playerQueries.selectAll().awaitAsList().let {
             assertEquals(0, it.size)
         }
     }
@@ -114,11 +113,11 @@ class DriverWithLibraryTest {
                 playerQueries.insertFullPlayerObject(it)
             }
         }
-        val list1 = playerQueries.selectWithLimit(0, 50).executeAsFlow().toCollection(mutableListOf())
+        val list1 = playerQueries.selectWithLimit(0, 50).awaitAsList()
         println(list1.size)
-        val list2 = playerQueries.selectWithLimit(50, 99).executeAsFlow().toCollection(mutableListOf())
+        val list2 = playerQueries.selectWithLimit(50, 99).awaitAsList()
         println(list2.size)
-        val list3 = playerQueries.selectAll().executeAsFlow().toCollection(mutableListOf())
+        val list3 = playerQueries.selectAll().awaitAsList()
         println(list3.size)
     }
 

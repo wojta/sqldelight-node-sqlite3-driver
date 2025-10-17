@@ -50,7 +50,7 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
             if (enclosingTransaction == null) {
                 statements.onEach { it.value.finalizeSuspending() }
                 val sql = if (successful) "END TRANSACTION" else "ROLLBACK TRANSACTION"
-                suspendCoroutine<Any?> { cont ->
+                suspendCoroutine { cont ->
                     val callback: (Any?) -> Unit = {
                         if (it == null || it !is Throwable) {
                             cont.resume(it)
@@ -136,7 +136,7 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
         val transaction = Transaction(enclosing)
         this.transaction = transaction
         if (enclosing == null) {
-            suspendCoroutine<Any?> { cont ->
+            suspendCoroutine { cont ->
                 val callback: (Any?) -> Unit = {
                     if (it == null || it !is Throwable) {
                         cont.resume(it)
@@ -186,7 +186,7 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
         if (parameters > 0) {
             val bound = SQLite3PreparedStatement(parameters)
             binders(bound)
-            suspendCoroutine<Any?> { cont ->
+            suspendCoroutine { cont ->
                 val callback: (Any?) -> Unit = {
                     if (it == null || it !is Throwable) {
                         cont.resume(it)

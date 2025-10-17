@@ -16,7 +16,7 @@ plugins {
 }
 
 val defaultGroupId = "cz.sazel.sqldelight"
-val versionBase = "0.4.0"
+val versionBase = "0.5.0"
 
 val localProperties = Properties().apply {
     try {
@@ -47,14 +47,12 @@ repositories {
     }
 }
 
+lateinit var publicationsFromMainHost: List<String>
+
+
 kotlin {
 
-
     js(IR) {
-        compilations.all {
-            kotlinOptions.moduleKind = "commonjs"
-        }
-
         useCommonJs()
         nodejs {
             kotlinNodeJsEnvSpec.version.set(libs.versions.node.js.get())
@@ -84,7 +82,7 @@ kotlin {
             dependencies {
                 implementation(libs.sqldelight.runtime.js)
                 implementation(libs.sqldelight.async.extensions.js)
-                implementation(npm("sqlite3", libs.versions.node.sqlite3.get(), false))
+                implementation(npm("sqlite3", libs.versions.node.sqlite3.get()))
             }
         }
         val jsTest by getting {
@@ -98,7 +96,7 @@ kotlin {
             }
         }
 
-        val publicationsFromMainHost = listOf(js()).map { it.name } + "kotlinMultiplatform"
+        publicationsFromMainHost = listOf(js()).map { it.name } + "kotlinMultiplatform"
 
         dokka {
             moduleName = "node-sqlite3-driver"
@@ -111,92 +109,93 @@ kotlin {
             }
         }
 
-        val javadocJar = tasks.register<Jar>("javadocJar") {
-            dependsOn(tasks.dokkaGenerate.get())
-            archiveClassifier.set("javadoc")
-            from(layout.buildDirectory.dir("dokka/html"))
-        }
 
-        publishing {
-
-            publications {
-                matching { it.name in publicationsFromMainHost }.all {
-                    val targetPublication = this@all
-                    tasks.withType<AbstractPublishToMaven>().matching { it.publication == targetPublication }
-                        .configureEach { onlyIf { findProperty("isMainHost") == "true" } }
-                }
-
-
-                withType<MavenPublication> {
-                    artifact(javadocJar)
-
-                    pom {
-                        name.set("node-sqlite3-driver")
-                        description.set("Driver for the library SQLDelight that supports sqlite3 Node.js module")
-                        licenses {
-                            license {
-                                name.set("Apache-2.0")
-                                url.set("https://opensource.org/licenses/Apache-2.0")
-                            }
-                        }
-                        url.set("https://github.com/wojta/sqldelight-node-sqlite3-driver")
-                        issueManagement {
-                            system.set("Github")
-                            url.set("https://github.com/wojta/sqldelight-node-sqlite3-driver/issues")
-                        }
-                        scm {
-                            connection.set("https://github.com/wojta/sqldelight-node-sqlite3-driver.git")
-                            url.set("https://github.com/wojta/sqldelight-node-sqlite3-driver")
-                        }
-                        developers {
-                            developer {
-                                name.set("Vojtěch Sázel")
-                                email.set("sqldelight@sazel.cz")
-                            }
-                        }
-                    }
-                }
-
-            }
-
-            repositories {
-                val githubUserName = System.getenv("GITHUB_USER") ?: localProperties["github.user"] as String?
-                if (githubUserName != null) { // Github packages repo
-                    maven {
-                        name = "GitHubPackages"
-                        url = uri("https://maven.pkg.github.com/wojta/sqldelight-node-sqlite3-driver") // Github Package
-
-                        credentials {
-                            //Fetch these details from the properties file or from Environment variables
-                            username = githubUserName
-                            password = System.getenv("GITHUB_TOKEN") ?: localProperties["github.token"] as String?
-                        }
-                    }
-                }
-                maven { // OSS Sonatype (default)
-                    val isSnapshot = version.toString().endsWith("SNAPSHOT")
-                    val destination = if (!isSnapshot) {
-                        "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-                    } else "https://s01.oss.sonatype.org/content/repositories/snapshots"
-                    url = uri(destination)
-                    credentials {
-                        username = System.getenv("SONATYPE_USER") ?: localProperties["sonatype.user"] as String?
-                        password = System.getenv("SONATYPE_PASSWORD") ?: localProperties["sonatype.password"] as String?
-                    }
-                }
-                mavenLocal()
-            }
-        }
-
-        signing {
-            useInMemoryPgpKeys(
-                System.getenv("GPG_KEY_SECRET") ?: localProperties["gpg.keySecret"] as String?,
-                System.getenv("GPG_KEY_PASSWORD") ?: localProperties["gpg.keyPassword"] as String?
-            )
-
-            sign(publishing.publications)
-        }
     }
+}
+
+val javadocJar = tasks.register<Jar>("javadocJar") {
+    dependsOn(tasks.dokkaGenerate.get())
+    archiveClassifier.set("javadoc")
+    from(layout.buildDirectory.dir("dokka/html"))
+}
+
+publishing {
+    publications {
+        matching { it.name in publicationsFromMainHost }.all {
+            val targetPublication = this@all
+            tasks.withType<AbstractPublishToMaven>().matching { it.publication == targetPublication }
+                .configureEach { onlyIf { findProperty("isMainHost") == "true" } }
+        }
+
+
+        withType<MavenPublication> {
+            artifact(javadocJar)
+
+            pom {
+                name.set("node-sqlite3-driver")
+                description.set("Driver for the library SQLDelight that supports sqlite3 Node.js module")
+                licenses {
+                    license {
+                        name.set("Apache-2.0")
+                        url.set("https://opensource.org/licenses/Apache-2.0")
+                    }
+                }
+                url.set("https://github.com/wojta/sqldelight-node-sqlite3-driver")
+                issueManagement {
+                    system.set("Github")
+                    url.set("https://github.com/wojta/sqldelight-node-sqlite3-driver/issues")
+                }
+                scm {
+                    connection.set("https://github.com/wojta/sqldelight-node-sqlite3-driver.git")
+                    url.set("https://github.com/wojta/sqldelight-node-sqlite3-driver")
+                }
+                developers {
+                    developer {
+                        name.set("Vojtěch Sázel")
+                        email.set("sqldelight@sazel.cz")
+                    }
+                }
+            }
+        }
+
+    }
+
+    repositories {
+        val githubUserName = System.getenv("GITHUB_USER") ?: localProperties["github.user"] as String?
+        if (githubUserName != null) { // Github packages repo
+            maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/wojta/sqldelight-node-sqlite3-driver") // Github Package
+
+                credentials {
+                    //Fetch these details from the properties file or from Environment variables
+                    username = githubUserName
+                    password = System.getenv("GITHUB_TOKEN") ?: localProperties["github.token"] as String?
+                }
+            }
+        }
+        maven { // OSS Sonatype (default)
+            val isSnapshot = version.toString().endsWith("SNAPSHOT")
+            val destination = if (!isSnapshot) {
+                "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+            } else "https://s01.oss.sonatype.org/content/repositories/snapshots"
+            url = uri(destination)
+            credentials {
+                username = System.getenv("SONATYPE_USER") ?: localProperties["sonatype.user"] as String?
+                password = System.getenv("SONATYPE_PASSWORD") ?: localProperties["sonatype.password"] as String?
+            }
+        }
+        mavenLocal()
+    }
+}
+
+signing {
+    useInMemoryPgpKeys(
+        System.getenv("GPG_KEY_SECRET") ?: localProperties["gpg.keySecret"] as String?,
+        System.getenv("GPG_KEY_PASSWORD") ?: localProperties["gpg.keyPassword"] as String?
+    )
+
+    sign(publishing.publications)
 }
 
 // workaround for missing sqlite3 bindings
