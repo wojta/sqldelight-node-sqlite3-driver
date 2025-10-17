@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.toList
  * Use this instead of non-async method [Query.executeAsList].
  * @return The result set of the underlying SQL statement as a list of RowType.
  */
+@Deprecated("Use awaitAsList() instead", ReplaceWith("awaitAsList()"))
 suspend fun <T : Any> Query<T>.executeSuspendingAsList(): List<T> =
     executeAsFlow().toList(mutableListOf())
 

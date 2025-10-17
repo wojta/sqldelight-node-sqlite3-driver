@@ -12,14 +12,14 @@ supports [sqlite3](https://www.npmjs.com/package/sqlite3) Node.js module
 
 ## Gradle set up
 
-Pretty much it's almost the same as with https://sqldelight.github.io/sqldelight/2.0.2/js_sqlite
+Pretty much it's almost the same as with https://sqldelight.github.io/sqldelight/2.1.0/js_sqlite
 
 Initialization of SQLDelight is needed
 
 ```kotlin
 plugins {
-    kotlin("js") version "2.1.20" // probably would work even with different one
-    id("app.cash.sqldelight") version "2.0.2" // for version 0.4.0 and higher
+    kotlin("js") version "2.2.20" // probably would work even with different one
+    id("app.cash.sqldelight") version "2.1.0" // for version 0.5.0 and higher
 }
 ፧
 ፧
@@ -42,7 +42,7 @@ kotlin {
         binaries.executable()
         nodejs {
             dependencies {
-                implementation("cz.sazel.sqldelight:node-sqlite3-driver-js:0.4.1")
+                implementation("cz.sazel.sqldelight:node-sqlite3-driver-js:0.5.0")
             }
         }
     }
@@ -75,7 +75,7 @@ tasks["kotlinNpmInstall"].finalizedBy(bindingsInstall)
 
 ## Simple example
 
-Queries are written as here - https://sqldelight.github.io/sqldelight/2.0.2/js_sqlite/#using-queries
+Queries are written as here - https://sqldelight.github.io/sqldelight/2.1.0/js_sqlite/#using-queries
 
 ```kotlin
 suspend fun main() {
@@ -85,11 +85,11 @@ suspend fun main() {
 
     val playerQueries: PlayerQueries = database.playerQueries
 
-    println(playerQueries.selectAll().executeSuspendingAsList())
+    println(playerQueries.selectAll().awaitAsList())
     // Prints [HockeyPlayer(15, "Ryan Getzlaf")]
 
     playerQueries.insert(player_number = 10, full_name = "Corey Perry")
-    println(playerQueries.selectAll().executeSuspendingAsList())
+    println(playerQueries.selectAll().awaitAsList())
     // Prints [HockeyPlayer(15, "Ryan Getzlaf"), HockeyPlayer(10, "Corey Perry")]
 
     val player = HockeyPlayer(20, "Ronald McDonald")
@@ -97,7 +97,7 @@ suspend fun main() {
 }
 ```
 
-Note: Please use `executeSuspendingAsList()` or `executeAsFlow()` in queries instead of `executeAsList()`
+Note: Please use `awaitAsList()` or `executeAsFlow()` in queries instead of `executeAsList()`
 as that API is not suspending and will throw an exception with this driver.
 
 ## Thanks
