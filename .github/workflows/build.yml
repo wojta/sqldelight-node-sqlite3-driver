@@ -85,7 +85,7 @@ jobs:
           GPG_KEY_PASSWORD: ${{ secrets.GPG_KEY_PASSWORD }}
           GPG_KEY_SECRET: ${{ secrets.GPG_KEY_SECRET }}
           PACKAGE_VERSION: ${{ github.event.release.tag_name }}
-        run: ./gradlew publishToMavenCentral --debug
+        run: ./gradlew publishToMavenCentral
 
   publish:
     if: ${{ github.event_name == 'release' }}
