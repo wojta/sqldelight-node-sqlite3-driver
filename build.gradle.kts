@@ -177,8 +177,8 @@ publishing {
         maven { // OSS Sonatype (default)
             val isSnapshot = version.toString().endsWith("SNAPSHOT")
             val destination = if (!isSnapshot) {
-                "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-            } else "https://s01.oss.sonatype.org/content/repositories/snapshots"
+                "https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/"
+            } else "https://central.sonatype.com/repository/maven-snapshots/"
             url = uri(destination)
             credentials {
                 username = System.getenv("SONATYPE_USER") ?: localProperties["sonatype.user"] as String?
