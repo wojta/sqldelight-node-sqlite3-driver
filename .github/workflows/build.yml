@@ -76,6 +76,10 @@ jobs:
       - name: Setup gradle
         uses: gradle/gradle-build-action@v3
 
+      - name: Add to signAllPublications to gradle.properties
+        run: |
+          echo "signAllPublications=true" >> gradle.properties
+
       - name: Release to sonatype
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.SONATYPE_USER }}
