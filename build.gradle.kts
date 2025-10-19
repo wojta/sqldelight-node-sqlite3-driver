@@ -135,12 +135,6 @@ mavenPublishing {
                 }
             }
         }
-        mavenCentral {
-            credentials {
-                username = System.getenv("SONATYPE_USER") ?: localProperties["sonatype.user"] as String?
-                password = System.getenv("SONATYPE_PASSWORD") ?: localProperties["sonatype.password"] as String?
-            }
-        }
         mavenLocal()
     }
     coordinates(group.toString(), nameStr, versionStr)
