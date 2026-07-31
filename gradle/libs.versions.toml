@@ -7,7 +7,7 @@ kover = "0.9.1"
 node-sqlite3 = "5.1.7"
 node-js = "22.13.0"
 maven-publish = "0.34.0"
-sqldelight = "2.1.0"
+sqldelight = "2.3.2"
 
 [libraries]
 kotlin-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinCoroutines" }
