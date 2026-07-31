@@ -6,7 +6,7 @@ kotlinCoroutines = "1.11.0"
 kover = "0.9.9"
 node-sqlite3 = "6.0.1"
 node-js = "24.18.1"
-maven-publish = "0.34.0"
+maven-publish = "0.37.0"
 sqldelight = "2.3.2"
 
 [libraries]
