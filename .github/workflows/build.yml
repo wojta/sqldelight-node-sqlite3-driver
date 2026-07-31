@@ -58,6 +58,90 @@ jobs:
           PACKAGE_VERSION: ${{ github.event.release.tag_name }}
         run: ./gradlew build
 
+  dependency-check:
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'adopt'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Get cache week
+        id: date
+        run: echo "week=$(date -u +%Y-W%U)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache dependency-check NVD data
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/dependency-check-data
+          key: dependency-check-data-${{ steps.date.outputs.week }}
+          restore-keys: dependency-check-data-
+
+      - name: Run OWASP dependency-check
+        id: analyze
+        continue-on-error: true
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: ./gradlew dependencyCheckAnalyze
+
+      - name: Upload dependency-check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: build/reports/dependency-check-report.html
+
+      - name: Build Markdown summary
+        if: always()
+        run: |
+          REPORT=build/reports/dependency-check-report.json
+          # Prefer NPM/GHSA scoring over NVD for npm deps, NVD often over-scores JS-ecosystem CVEs.
+          FINDINGS='
+            def score: (.cvssv3.baseScore // .cvssv2.score // 0);
+            def relevant($d): ($d.vulnerabilities | any(.source == "NPM"));
+            [ .dependencies[]? | select(.vulnerabilities != null) as $d
+              | $d.vulnerabilities[]
+              | select(if (relevant($d)) then .source == "NPM" else true end)
+              | select(score >= 7)
+              | {fileName: $d.fileName, name, severity: (.severity // "n/a"), cvss: score, source: (.source // "n/a")}
+            ]
+          '
+          {
+            echo "### OWASP Dependency-Check results"
+            echo
+            echo "_Showing HIGH/CRITICAL findings (CVSS >= 7), GHSA-preferred over NVD for npm deps. Full report in the workflow artifact._"
+            echo
+            COUNT=$(jq "$FINDINGS | length" "$REPORT")
+            if [ "$COUNT" -eq 0 ]; then
+              echo "No HIGH/CRITICAL vulnerabilities found."
+            else
+              echo "| Dependency | CVE | Severity | CVSS | Source |"
+              echo "|---|---|---|---|---|"
+              jq -r "$FINDINGS"' | .[] | "| \(.fileName) | \(.name) | \(.severity) | \(.cvss) | \(.source) |"' "$REPORT"
+            fi
+          } > dependency-check-summary.md
+
+      - name: Comment PR with results
+        if: always() && github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: dependency-check
+          path: dependency-check-summary.md
+
+      - name: Fail on vulnerabilities above threshold
+        if: steps.analyze.outcome == 'failure'
+        run: exit 1
+
   release:
     if: ${{ github.event_name == 'release' }}
     runs-on: ubuntu-latest

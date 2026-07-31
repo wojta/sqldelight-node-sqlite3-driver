@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.kover)
     alias(libs.plugins.maven.publish)
     alias(libs.plugins.sqldelight)
+    alias(libs.plugins.owasp.dependencycheck)
     id("signing")
 }
 
@@ -209,5 +210,15 @@ detekt {
 
     reports {
         html.required.set(true) // observe findings in your browser with structure and code snippets
+    }
+}
+
+dependencyCheck {
+    failBuildOnCVSS = 7.0f // fail on high/critical CVEs, don't block on low/medium noise
+    formats = listOf("HTML", "JSON") // JSON used to build the PR comment summary
+    suppressionFile = "$projectDir/gradle/dependency-check/suppression.xml"
+    scanSet.setFrom(file("$projectDir/kotlin-js-store/yarn.lock")) // npm sqlite3 dependency lockfile
+    nvd {
+        apiKey = System.getenv("NVD_API_KEY") ?: localProperties["nvd.apiKey"] as String?
     }
 }
