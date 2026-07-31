@@ -17,7 +17,7 @@ plugins {
 
 val defaultGroupId = "cz.sazel.sqldelight"
 val nameStr = "node-sqlite3-driver"
-val versionBase = "0.5.0"
+val versionBase = "0.6.0"
 
 val localProperties = Properties().apply {
     try {
