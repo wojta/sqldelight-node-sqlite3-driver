@@ -11,6 +11,7 @@ import kotlin.coroutines.resumeWithException
 
 @JsName("Object")
 private external object JsObject {
+    @Suppress("UnusedParameter")
     fun values(obj: Any): Array<dynamic>
 }
 

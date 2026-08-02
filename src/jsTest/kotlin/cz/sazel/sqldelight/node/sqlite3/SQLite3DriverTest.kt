@@ -204,7 +204,7 @@ class SQLite3DriverTest {
             return driver.awaitQuery(4, "SELECT changes()", mapper, 0)
         }
 
-        val inserted = insert {
+        insert {
             bindLong(0, 1)
             bindLong(1, null)
             bindString(2, null)
