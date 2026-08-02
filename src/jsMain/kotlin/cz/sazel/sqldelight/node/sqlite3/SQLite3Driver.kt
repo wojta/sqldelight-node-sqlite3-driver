@@ -76,23 +76,28 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
         return preparedStatement
     }
 
+    /** Statements cached by a transaction are reused and finalized by [Transaction.endTransaction], not by the caller. */
+    private suspend fun Sqlite3.Statement.finalizeUnlessCached() {
+        if (transaction?.statements?.containsValue(this) != true) finalizeSuspending()
+    }
+
     override fun execute(
         identifier: Int?, sql: String,
         parameters: Int, binders: (SqlPreparedStatement.() -> Unit)?
     ): QueryResult<Long> = QueryResult.AsyncValue {
         val statement = createOrGetStatement(identifier, sql)
-        statement.bind(parameters, binders)
-        suspendCancellableCoroutine { cont ->
-            statement.run { err ->
-                if (err == null) cont.resume(Unit) else cont.resumeWithException(SQLite3JsException(err))
+        try {
+            statement.bind(parameters, binders)
+            suspendCancellableCoroutine { cont ->
+                statement.run { err ->
+                    if (err == null) cont.resume(Unit) else cont.resumeWithException(SQLite3JsException(err))
+                }
             }
+            // node-sqlite3 sets `changes` on the statement itself right before firing the run callback
+            statement.unsafeCast<Sqlite3.RunResult>().changes.toLong()
+        } finally {
+            statement.finalizeUnlessCached()
         }
-        // node-sqlite3 sets `changes` on the statement itself right before firing the run callback
-        val changes = statement.unsafeCast<Sqlite3.RunResult>().changes.toLong()
-        if (transaction == null) {
-            statement.finalizeSuspending()
-        }
-        return@AsyncValue changes
     }
 
     override fun <R> executeQuery(
@@ -101,13 +106,19 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
         mapper: (SqlCursor) -> QueryResult<R>,
         parameters: Int,
         binders: (SqlPreparedStatement.() -> Unit)?
-    ): QueryResult<R> {
+    ): QueryResult<R> = QueryResult.AsyncValue {
+        var statement: Sqlite3.Statement? = null
         val cursor = SQLite3Cursor {
-            val statement = createOrGetStatement(identifier, sql)
-            statement.bind(parameters, binders)
-            statement
+            createOrGetStatement(identifier, sql).also {
+                statement = it
+                it.bind(parameters, binders)
+            }
         }
-        return mapper(cursor)
+        try {
+            mapper(cursor).await()
+        } finally {
+            statement?.finalizeUnlessCached()
+        }
     }
 
     override fun newTransaction(): QueryResult<Transacter.Transaction> = QueryResult.AsyncValue {

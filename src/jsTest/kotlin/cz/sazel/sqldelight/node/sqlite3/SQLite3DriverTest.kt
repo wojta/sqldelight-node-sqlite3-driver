@@ -273,7 +273,7 @@ class SQLite3DriverTest {
         try {
             assertTrue(success)
         } finally {
-            (driver as SQLite3Driver)._endTransactionForTests(success)
+            (driver as SQLite3Driver)._endTransactionForTests(success)?.await()
         }
     }
 
@@ -296,7 +296,7 @@ class SQLite3DriverTest {
         try {
             assertFalse(success)
         } finally {
-            (driver as SQLite3Driver)._endTransactionForTests(success)
+            (driver as SQLite3Driver)._endTransactionForTests(success)?.await()
         }
     }
 
