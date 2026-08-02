@@ -136,7 +136,7 @@ external object Sqlite3 {
         //open fun run(params: Any, callback: (self: RunResult, err: Error?) -> Unit = definedExternally): Statement /* this */
         open fun run(params: Any, callback: (self: Any?) -> Unit): Statement
         open fun run(params: Any): Statement /* this */
-        open fun get(callback: (row: Any?, row2: Any) -> Unit = definedExternally): Statement /* this */
+        open fun get(callback: (err: Error?, row: Any?) -> Unit = definedExternally): Statement /* this */
         open fun get(): Statement /* this */
         open fun get(
             params: Any,
