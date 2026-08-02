@@ -30,13 +30,18 @@ jobs:
           fetch-depth: 1
           ref: ${{ github.head_ref }}
 
-      - name: Setup detekt
-        uses: peter-murray/setup-detekt@v2
+      - name: set up JDK 17
+        uses: actions/setup-java@v3
         with:
-          detekt_version: 1.22.0
+          java-version: '17'
+          distribution: 'adopt'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
       - name: Run detekt
-        run: detekt-cli -c gradle/detekt/detekt.yml
+        run: ./gradlew detekt
 
   build:
 
