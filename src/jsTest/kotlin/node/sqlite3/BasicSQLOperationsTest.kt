@@ -14,10 +14,9 @@ class BasicSQLOperationsTest {
     @Test
     fun testCreateDb() = runTest {
 
-        val x = Sqlite3
         val db: Sqlite3.Database =
             Sqlite3.Database("test.db", mode = Sqlite3.OPEN_CREATE.toInt() or Sqlite3.OPEN_READWRITE.toInt())
-        val res = suspendCoroutine { cont ->
+        suspendCoroutine { cont ->
             db.run(
                 """CREATE TABLE contacts (
                 contact_id INTEGER PRIMARY KEY,
@@ -29,7 +28,7 @@ class BasicSQLOperationsTest {
                 it?.let { cont.resumeWithException(it as Throwable) } ?: cont.resume(it)
             }
         }
-        val statement = suspendCoroutine { cont ->
+        suspendCoroutine { cont ->
             db.run(
                 "INSERT INTO contacts (contact_id,first_name,last_name,email,phone) " +
                         "VALUES (?,?,?,?,?)", js("[1, \"Petr\", \"Novak\", \"petr.novak@gmail.com\", \"1234\"]")
@@ -37,7 +36,7 @@ class BasicSQLOperationsTest {
                 it?.let { cont.resumeWithException(it as Throwable) } ?: cont.resume(it)
             }
         }
-        val statement2 = suspendCoroutine { cont ->
+        suspendCoroutine { cont ->
             db.run(
                 "INSERT INTO contacts (contact_id,first_name,last_name,email,phone) " +
                         "VALUES (?,?,?,?,?)",

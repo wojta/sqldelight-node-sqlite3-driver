@@ -1,5 +1,6 @@
 @file:OptIn(ExperimentalKotlinGradlePluginApi::class)
 
+import io.gitlab.arturbosch.detekt.Detekt
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsPlugin.Companion.kotlinNodeJsEnvSpec
 import org.jetbrains.kotlin.gradle.targets.js.yarn.yarn
@@ -205,8 +206,12 @@ detekt {
     buildUponDefaultConfig = true // preconfigure defaults
     allRules = false // activate all available (even unstable) rules.
     config.setFrom("$projectDir/gradle/detekt/detekt.yml") // point to your custom config defining rules to run, overwriting default behavior
+    // default source dirs are JVM-only, KMP source sets have to be added explicitly, generated code is skipped
+    source.setFrom(kotlin.sourceSets.flatMap { it.kotlin.srcDirs }.filter { it.startsWith(file("src")) })
 //   baseline = file("$projectDir/config/baseline.xml") // a way of suppressing issues before introducing detekt
+}
 
+tasks.withType<Detekt>().configureEach {
     reports {
         html.required.set(true) // observe findings in your browser with structure and code snippets
     }

@@ -76,7 +76,10 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
         return preparedStatement
     }
 
-    /** Statements cached by a transaction are reused and finalized by [Transaction.endTransaction], not by the caller. */
+    /**
+     * Statements cached by a transaction are reused and finalized by [Transaction.endTransaction],
+     * not by the caller.
+     */
     private suspend fun Sqlite3.Statement.finalizeUnlessCached() {
         if (transaction?.statements?.containsValue(this) != true) finalizeSuspending()
     }
