@@ -123,7 +123,7 @@ external object Sqlite3 {
     }
 
     internal open class Statement : node.events.EventEmitter {
-        open fun bind(params: Array<Any?>, callback: (self: Any?) -> Unit = definedExternally): Statement /* this */
+        open fun bind(params: Array<Any?>, callback: (err: Error?) -> Unit = definedExternally): Statement /* this */
 
         //        open fun bind(callback: (err: Error?) -> Unit = definedExternally): Statement /* this */
 //        open fun bind(): Statement /* this */
@@ -241,10 +241,10 @@ external object Sqlite3 {
             callback: (self: Statement, err: Error?, row: Any) -> Unit = definedExternally
         ): Database /* this */
 
-        open fun exec(sql: String, callback: (self: Any?) -> Unit = definedExternally): Database /* this */
+        open fun exec(sql: String, callback: (err: Error?) -> Unit = definedExternally): Database /* this */
 
         //open fun prepare(sql: String, callback: (self: Statement, err: Error?) -> Unit = definedExternally): Statement
-        open fun prepare(sql: String, callback: (self: Any) -> Unit): Statement
+        open fun prepare(sql: String, callback: (err: Error?) -> Unit): Statement
 
         open fun prepare(sql: String): Statement
         open fun prepare(sql: String, params: Any?, callback: (self: Any) -> Unit): Statement

@@ -127,6 +127,24 @@ class SQLite3DriverTest {
         }
     }
 
+    /**
+     * Regression: [SQLite3Driver.execute] used to discard the statement's `changes` and always return 0.
+     */
+    @Test
+    fun execute_returns_number_of_rows_affected() = runTest { driver ->
+        assertEquals(1, driver.execute(20, "INSERT INTO test VALUES (?, ?);", 2) {
+            bindLong(0, 1)
+            bindString(1, "Alec")
+        }.await())
+        assertEquals(1, driver.execute(21, "INSERT INTO test VALUES (?, ?);", 2) {
+            bindLong(0, 2)
+            bindString(1, "Jake")
+        }.await())
+        assertEquals(2, driver.execute(22, "UPDATE test SET value = 'Whoever'", 0).await())
+        assertEquals(1, driver.execute(23, "DELETE FROM test WHERE id = ?", 1) { bindLong(0, 1) }.await())
+        assertEquals(1, driver.execute(24, "DELETE FROM test", 0).await())
+    }
+
     @Test
     fun query_can_run_multiple_times() = runTest { driver ->
 

@@ -7,6 +7,8 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 
 typealias Database = cz.sazel.sqldelight._dont_use.TestDatabaseDontUse
 
@@ -65,6 +67,34 @@ class DriverWithLibraryTest {
                 assertContains(it, initialPlayer)
                 assertEquals(1, it.size)
             }
+        }
+    }
+
+    /**
+     * Regression: [SQLite3Driver.Transaction.endTransaction] used to restore itself instead of the enclosing
+     * transaction, so every transaction after the first one skipped both BEGIN and ROLLBACK and silently committed.
+     */
+    @Test
+    fun testSecondTransactionStillBeginsAndRollsBack() = withDatabase {
+        transaction {
+            playerQueries.insertFullPlayerObject(HockeyPlayer(player_number = 8, full_name = "Teemu Selanne"))
+        }
+        assertNull(driver.currentTransaction())
+
+        val rolledBackPlayer = HockeyPlayer(player_number = 18, full_name = "Saku Koivu")
+        try {
+            transaction {
+                playerQueries.insertFullPlayerObject(rolledBackPlayer)
+                error("Rollback")
+            }
+        } catch (e: Exception) {
+            // do nothing
+        }
+
+        playerQueries.selectAll().awaitAsList().let {
+            assertFalse(rolledBackPlayer in it)
+            assertContains(it, initialPlayer)
+            assertEquals(2, it.size)
         }
     }
 
