@@ -29,6 +29,7 @@ class DriverWithLibraryTest {
             playerQueries = database.testDataBaseDontUseQueries
             database.fn()
         } finally {
+            driver.close()
             js("require('fs').unlinkSync(dbName)")
         }
     }
