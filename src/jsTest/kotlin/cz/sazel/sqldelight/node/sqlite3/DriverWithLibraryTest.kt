@@ -3,6 +3,8 @@ package cz.sazel.sqldelight.node.sqlite3
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import cz.sazel.sqldelight.dontuse.HockeyPlayer
 import cz.sazel.sqldelight.dontuse.TestDataBaseDontUseQueries
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -133,6 +135,38 @@ class DriverWithLibraryTest {
         playerQueries.selectAll().awaitAsList().let {
             assertEquals(0, it.size)
         }
+    }
+
+    @Test
+    fun testExecuteAsFlowReturnsAllRows() = withDatabase {
+        val insertedPlayers = (0..4).map { HockeyPlayer(player_number = 200L + it, full_name = "Flow $it") }
+        transaction {
+            insertedPlayers.forEach { playerQueries.insertFullPlayerObject(it) }
+        }
+        playerQueries.selectAll().executeAsFlow().toList().let {
+            assertContains(it, initialPlayer)
+            assertEquals(6, it.size)
+        }
+    }
+
+    /**
+     * Regression: the cursor used to be created eagerly and captured by the returned flow, so collecting it a
+     * second time reused an already exhausted cursor and yielded nothing.
+     */
+    @Test
+    fun testExecuteAsFlowIsColdAndCanBeCollectedTwice() = withDatabase {
+        val flow = playerQueries.selectAll().executeAsFlow()
+        assertEquals(listOf(initialPlayer), flow.toList())
+        assertEquals(listOf(initialPlayer), flow.toList())
+    }
+
+    @Test
+    fun testExecuteAsFlowSupportsPartialCollection() = withDatabase {
+        val insertedPlayers = (0..9).map { HockeyPlayer(player_number = 300L + it, full_name = "Partial $it") }
+        transaction {
+            insertedPlayers.forEach { playerQueries.insertFullPlayerObject(it) }
+        }
+        assertEquals(3, playerQueries.selectAll().executeAsFlow().take(3).toList().size)
     }
 
     @Test
