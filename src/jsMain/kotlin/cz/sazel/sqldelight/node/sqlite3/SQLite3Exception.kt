@@ -10,7 +10,7 @@ open class SQLite3Exception(message: String) : Exception(message)
 /**
  * Exception that occurs from within SQLite 3 Node.js module.
  */
-class SQLite3JsException(private val err: Throwable?) : SQLite3Exception(err.nullable?.message ?: "unknown error") {
+class SQLite3JsException(private val err: Throwable?) : SQLite3Exception(err?.message ?: "unknown error") {
     /**
      * SQLite error number
      */
