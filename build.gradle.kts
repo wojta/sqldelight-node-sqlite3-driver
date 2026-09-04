@@ -115,7 +115,7 @@ kotlin {
     }
 }
 
-val javadocJar = tasks.register<Jar>("javadocJar") {
+val javadocJar: TaskProvider<Jar> = tasks.register<Jar>("javadocJar") {
     dependsOn(tasks.dokkaGenerate.get())
     archiveClassifier.set("javadoc")
     from(layout.buildDirectory.dir("dokka/html"))
