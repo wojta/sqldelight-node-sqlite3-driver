@@ -122,7 +122,7 @@ external object Sqlite3 {
         var changes: Number
     }
 
-    internal open class Statement : node.events.EventEmitter {
+    internal open class Statement : cz.sazel.sqldelight.node.sqlite3.nodejs.EventEmitter {
         open fun bind(params: Array<Any?>, callback: (err: Error?) -> Unit = definedExternally): Statement /* this */
 
         //        open fun bind(callback: (err: Error?) -> Unit = definedExternally): Statement /* this */
@@ -171,7 +171,7 @@ external object Sqlite3 {
         ): Statement /* this */
     }
 
-    internal open class Database : node.events.EventEmitter {
+    internal open class Database : cz.sazel.sqldelight.node.sqlite3.nodejs.EventEmitter {
         constructor(filename: String, callback: (err: Error?) -> Unit = definedExternally)
         constructor(filename: String)
         constructor(
