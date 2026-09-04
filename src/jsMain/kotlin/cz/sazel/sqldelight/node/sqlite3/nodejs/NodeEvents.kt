@@ -5,7 +5,7 @@
     "UnusedParameter","ClassNaming","UnusedPrivateMember"
 )
 
-package node.events
+package cz.sazel.sqldelight.node.sqlite3.nodejs
 
 import kotlin.js.Promise
 
