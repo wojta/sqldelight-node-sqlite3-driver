@@ -22,7 +22,7 @@ class DriverWithLibraryTest {
 
     private fun withDatabase(fn: suspend Database.() -> Unit) = runTest {
         val dbName = this@DriverWithLibraryTest.dbName
-        js("var fs=require('fs'); if(fs.existsSync(dbName)) fs.unlinkSync(dbName)")
+        deleteIfExists(dbName)
         try {
             driver = initSqlite3SqlDriver(filename = "driver_test.db", schema = Database.Schema)
             val database = Database(driver)
@@ -30,7 +30,7 @@ class DriverWithLibraryTest {
             database.fn()
         } finally {
             driver.close()
-            js("require('fs').unlinkSync(dbName)")
+            unlinkSync(dbName)
         }
     }
 

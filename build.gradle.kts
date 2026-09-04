@@ -55,7 +55,7 @@ lateinit var publicationsFromMainHost: List<String>
 kotlin {
 
     js(IR) {
-        useCommonJs()
+        useEsModules()
         nodejs {
             kotlinNodeJsEnvSpec.version.set(libs.versions.node.js.get())
             testTask {
