@@ -5,8 +5,6 @@ import app.cash.sqldelight.Transacter
 import app.cash.sqldelight.db.*
 import kotlinx.coroutines.suspendCancellableCoroutine
 import node.sqlite3.Sqlite3
-import node.sqlite3.Sqlite3.OPEN_CREATE
-import node.sqlite3.Sqlite3.OPEN_READWRITE
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -14,13 +12,11 @@ suspend fun initSqlite3SqlDriver(
     filename: String, mode: Number? = null,
     schema: SqlSchema<QueryResult.AsyncValue<Unit>>? = null,
 ): SQLite3Driver =
-    SQLite3Driver(initSqlite3Database(filename, mode ?: (OPEN_CREATE.toInt() or OPEN_READWRITE.toInt()))).withSchema(
-        schema
-    )
+    SQLite3Driver(initSqlite3Database(filename, mode ?: openFlags())).withSchema(schema)
 
 private fun initSqlite3Database(
-    filename: String, mode: Number = OPEN_CREATE.toInt() or OPEN_READWRITE.toInt()
-): Sqlite3.Database = Sqlite3.Database(filename, mode)
+    filename: String, mode: Number = openFlags()
+): Sqlite3.Database = newDatabase(sqlite3Exports().Database, filename, mode)
 
 internal suspend fun SQLite3Driver.withSchema(schema: SqlSchema<QueryResult.AsyncValue<Unit>>? = null) =
     this.also { schema?.create(it)?.await() }
