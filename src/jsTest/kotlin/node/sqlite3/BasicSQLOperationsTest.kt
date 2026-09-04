@@ -7,6 +7,10 @@ import kotlinx.coroutines.test.runTest
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
+import cz.sazel.sqldelight.node.sqlite3.newDatabase
+import cz.sazel.sqldelight.node.sqlite3.unlinkSync
+import cz.sazel.sqldelight.node.sqlite3.openFlags
+import cz.sazel.sqldelight.node.sqlite3.sqlite3Exports
 import kotlin.test.Test
 
 class BasicSQLOperationsTest {
@@ -14,8 +18,7 @@ class BasicSQLOperationsTest {
     @Test
     fun testCreateDb() = runTest {
 
-        val db: Sqlite3.Database =
-            Sqlite3.Database("test.db", mode = Sqlite3.OPEN_CREATE.toInt() or Sqlite3.OPEN_READWRITE.toInt())
+        val db: Sqlite3.Database = newDatabase(sqlite3Exports().Database, "test.db", openFlags())
         suspendCoroutine { cont ->
             db.run(
                 """CREATE TABLE contacts (
@@ -54,6 +57,6 @@ class BasicSQLOperationsTest {
             }
         }
 
-        js("require('fs').unlinkSync('test.db')")
+        unlinkSync("test.db")
     }
 }
