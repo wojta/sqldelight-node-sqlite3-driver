@@ -223,7 +223,16 @@ dependencyCheck {
     formats = listOf("HTML", "JSON") // JSON used to build the PR comment summary
     suppressionFile = "$projectDir/gradle/dependency-check/suppression.xml"
     scanSet.setFrom(file("$projectDir/kotlin-js-store/yarn.lock")) // npm sqlite3 dependency lockfile
+    // only the shipped js target's classpath, not detekt/dokka's own bundled tool jars
+    scanConfigurations = listOf("jsCompileClasspath", "jsRuntimeClasspath")
     nvd {
         apiKey = System.getenv("NVD_API_KEY") ?: localProperties["nvd.apiKey"] as String?
+    }
+    analyzers {
+        ossIndex {
+            enabled = true
+            password = System.getenv("OSS_INDEX_TOKEN") ?: localProperties["ossIndex.token"] as String?
+            url = "https://api.guide.sonatype.com" // legacy ossindex.sonatype.org is being retired for Sonatype Guide
+        }
     }
 }

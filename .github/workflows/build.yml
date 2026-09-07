@@ -97,6 +97,7 @@ jobs:
         continue-on-error: true
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          OSS_INDEX_TOKEN: ${{ secrets.OSS_INDEX_TOKEN }}
         run: ./gradlew dependencyCheckAnalyze
 
       - name: Upload dependency-check report
@@ -104,12 +105,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
-          path: build/reports/dependency-check-report.html
+          path: build/reports/dependency-check/dependency-check-report.html
 
       - name: Build Markdown summary
         if: always()
         run: |
-          REPORT=build/reports/dependency-check-report.json
+          REPORT=build/reports/dependency-check/dependency-check-report.json
           # Prefer NPM/GHSA scoring over NVD for npm deps, NVD often over-scores JS-ecosystem CVEs.
           FINDINGS='
             def score: (.cvssv3.baseScore // .cvssv2.score // 0);
