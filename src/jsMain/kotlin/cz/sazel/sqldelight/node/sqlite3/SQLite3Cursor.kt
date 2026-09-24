@@ -55,7 +55,10 @@ internal class SQLite3Cursor internal constructor(val statementInit: suspend () 
     override fun getLong(index: Int): Long? = (requireRow()[index] as? Number)?.toLong()
 
     override fun getBytes(index: Int): ByteArray? =
-        (requireRow()[index] as? Uint8Array)?.let { Int8Array(it.buffer).unsafeCast<ByteArray>() }
+        (requireRow()[index] as? Uint8Array)?.let {
+            val view = Int8Array(it.buffer, it.byteOffset, it.length)
+            Int8Array(view.length).apply { set(view) }.unsafeCast<ByteArray>()
+        }
 
     override fun getDouble(index: Int): Double? = (requireRow()[index] as? Number)?.toDouble()
 

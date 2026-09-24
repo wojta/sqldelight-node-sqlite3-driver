@@ -42,7 +42,7 @@ kotlin {
         binaries.executable()
         nodejs {
             dependencies {
-                implementation("cz.sazel.sqldelight:node-sqlite3-driver-js:0.7.0")
+                implementation("cz.sazel.sqldelight:node-sqlite3-driver-js:0.8.0")
             }
         }
     }
@@ -99,6 +99,23 @@ suspend fun main() {
 
 Note: Please use `awaitAsList()` or `executeAsFlow()` in queries instead of `executeAsList()`
 as that API is not suspending and will throw an exception with this driver.
+
+## Limitations
+
+* `Long` (SQLite `INTEGER`) columns round-trip exactly only up to `2^53` (JS's safe integer
+  range), because binding and reading a value both pass through a JS `Number`. A value beyond
+  `2^53` loses precision.
+
+## Transactions
+
+By default a transaction starts with `BEGIN TRANSACTION` (deferred locking). Pass
+`beginImmediate = true` to `initSqlite3SqlDriver(...)` to start with `BEGIN IMMEDIATE` instead,
+which acquires the write lock up front instead of failing with `SQLITE_BUSY` when the transaction
+later upgrades from a read lock:
+
+```kotlin
+val driver = initSqlite3SqlDriver(filename = "test.db", schema = Database.Schema, beginImmediate = true)
+```
 
 ## Thanks
 

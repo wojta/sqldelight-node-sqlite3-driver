@@ -1,12 +1,18 @@
 package cz.sazel.sqldelight.node.sqlite3
 
 import app.cash.sqldelight.db.SqlPreparedStatement
+import org.khronos.webgl.Int8Array
 
 internal class SQLite3PreparedStatement(parameters: Int) : SqlPreparedStatement {
     val parameters = MutableList<Any?>(parameters) { null }
 
     override fun bindBytes(index: Int, bytes: ByteArray?) {
-        parameters[index] = bytes?.toTypedArray()
+        parameters[index] = bytes?.let { toNodeBuffer(it) }
+    }
+
+    private fun toNodeBuffer(bytes: ByteArray): dynamic {
+        val view = bytes.unsafeCast<Int8Array>()
+        return js("Buffer").from(view.buffer, view.byteOffset, view.byteLength)
     }
 
     override fun bindLong(index: Int, long: Long?) {
