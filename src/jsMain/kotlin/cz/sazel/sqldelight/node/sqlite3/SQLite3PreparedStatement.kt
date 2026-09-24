@@ -16,6 +16,12 @@ internal class SQLite3PreparedStatement(parameters: Int) : SqlPreparedStatement 
     }
 
     override fun bindLong(index: Int, long: Long?) {
+        if (long != null && kotlin.math.abs(long) > MAX_SAFE_LONG) {
+            throw SQLite3Exception(
+                "Long value $long exceeds the 2^53 precision limit of the JS Number bridge " +
+                        "(see README's Limitations section) and cannot be bound reliably."
+            )
+        }
         // We convert Long to Double because Kotlin's Double is mapped to JS number
         // whereas Kotlin's Long is implemented as a JS object
         parameters[index] = long?.toDouble()
