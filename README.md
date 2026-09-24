@@ -12,14 +12,14 @@ supports [sqlite3](https://www.npmjs.com/package/sqlite3) Node.js module
 
 ## Gradle set up
 
-Pretty much it's almost the same as with https://sqldelight.github.io/sqldelight/2.3.2/js_sqlite
+Pretty much it's almost the same as with https://sqldelight.github.io/sqldelight/2.4.0/js_sqlite
 
 Initialization of SQLDelight is needed
 
 ```kotlin
 plugins {
     kotlin("js") version "2.3.21" // probably would work even with different one
-    id("app.cash.sqldelight") version "2.3.2" // for version 0.5.0 and higher
+    id("app.cash.sqldelight") version "2.4.0" // for version 0.5.0 and higher
 }
 ፧
 ፧
@@ -75,7 +75,7 @@ tasks["kotlinNpmInstall"].finalizedBy(bindingsInstall)
 
 ## Simple example
 
-Queries are written as here - https://sqldelight.github.io/sqldelight/2.3.2/js_sqlite/#using-queries
+Queries are written as here - https://sqldelight.github.io/sqldelight/2.4.0/js_sqlite/#using-queries
 
 ```kotlin
 suspend fun main() {
