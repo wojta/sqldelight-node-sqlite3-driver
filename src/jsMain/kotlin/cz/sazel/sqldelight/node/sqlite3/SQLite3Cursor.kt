@@ -52,7 +52,14 @@ internal class SQLite3Cursor internal constructor(val statementInit: suspend () 
 
     override fun getString(index: Int): String? = requireRow()[index] as String?
 
-    override fun getLong(index: Int): Long? = (requireRow()[index] as? Number)?.toLong()
+    override fun getLong(index: Int): Long? = (requireRow()[index] as? Number)?.toLong()?.also {
+        if (kotlin.math.abs(it) > MAX_SAFE_LONG) {
+            throw SQLite3Exception(
+                "Long value $it exceeds the 2^53 precision limit of the JS Number bridge " +
+                        "(see README's Limitations section) and may not be the value that was stored."
+            )
+        }
+    }
 
     override fun getBytes(index: Int): ByteArray? =
         (requireRow()[index] as? Uint8Array)?.let {

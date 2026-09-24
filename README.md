@@ -103,8 +103,8 @@ as that API is not suspending and will throw an exception with this driver.
 ## Limitations
 
 * `Long` (SQLite `INTEGER`) columns round-trip exactly only up to `2^53` (JS's safe integer
-  range), because binding and reading a value both pass through a JS `Number`. A value beyond
-  `2^53` loses precision.
+  range), because binding and reading a value both pass through a JS `Number`. Binding or reading
+  a value beyond `2^53` throws `SQLite3Exception` instead of silently losing precision.
 
 ## Transactions
 

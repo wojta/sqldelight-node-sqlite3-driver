@@ -235,9 +235,12 @@ class SQLite3DriverTest {
             driver.await(7, "INSERT INTO nullability_test VALUES (?, ?, ?, ?, ?, ?);", 6, binders)
         }
 
+        // MAX_SAFE_LONG (2^53) itself, not Long.MAX_VALUE: values beyond it are rejected,
+        // see long_round_trips_up_to_2_pow_53_but_not_beyond.
+        val maxSafeLong = 1L shl 53
         insert {
             bindLong(0, 1)
-            bindLong(1, Long.MAX_VALUE)
+            bindLong(1, maxSafeLong)
             bindString(2, "Hello")
             bindBytes(3, ByteArray(5) { it.toByte() })
             bindDouble(4, Float.MAX_VALUE.toDouble())
@@ -247,7 +250,7 @@ class SQLite3DriverTest {
         val mapper: suspend (SqlCursor) -> Unit = {
             assertTrue(it.next().await())
             assertEquals(1, it.getLong(0))
-            assertEquals(Long.MAX_VALUE, it.getLong(1))
+            assertEquals(maxSafeLong, it.getLong(1))
             assertEquals("Hello", it.getString(2))
             val bytes = assertNotNull(it.getBytes(3))
             assertContentEquals(ByteArray(5) { i -> i.toByte() }, bytes)
@@ -369,23 +372,37 @@ class SQLite3DriverTest {
     }
 
     @Test
-    fun long_round_trips_up_to_2_pow_53_but_not_beyond() = runTest { driver ->
+    fun long_round_trips_at_2_pow_53_but_binding_beyond_it_throws() = runTest { driver ->
         val maxSafe = 1L shl 53
         driver.execute(700, "INSERT INTO nullability_test (id, integer_value) VALUES (?, ?);", 2) {
             bindLong(0, 1)
             bindLong(1, maxSafe)
         }.await()
-        driver.execute(701, "INSERT INTO nullability_test (id, integer_value) VALUES (?, ?);", 2) {
-            bindLong(0, 2)
-            bindLong(1, maxSafe + 1)
-        }.await()
 
-        driver.awaitQuery(702, "SELECT integer_value FROM nullability_test ORDER BY id", { cursor ->
+        driver.awaitQuery(701, "SELECT integer_value FROM nullability_test WHERE id = 1", { cursor ->
             assertTrue(cursor.next().await())
             assertEquals(maxSafe, cursor.getLong(0))
+        }, 0)
+
+        // Beyond 2^53 a Long is no longer representable exactly as a JS double, so binding
+        // it would silently store the wrong value; bindLong rejects it instead.
+        assertFailsWith<SQLite3Exception> {
+            driver.execute(702, "INSERT INTO nullability_test (id, integer_value) VALUES (?, ?);", 2) {
+                bindLong(0, 2)
+                bindLong(1, maxSafe + 1)
+            }.await()
+        }
+    }
+
+    @Test
+    fun reading_a_long_beyond_2_pow_53_throws() = runTest { driver ->
+        // Written directly in SQL so it bypasses bindLong's own check and lands in storage exactly,
+        // exercising getLong's guard on the read side.
+        driver.execute(710, "INSERT INTO nullability_test (id, integer_value) VALUES (1, 9223372036854775807);", 0).await()
+
+        driver.awaitQuery(711, "SELECT integer_value FROM nullability_test WHERE id = 1", { cursor ->
             assertTrue(cursor.next().await())
-            // 2^53 + 1 is not representable as a JS double; it round-trips as 2^53 instead.
-            assertNotEquals(maxSafe + 1, cursor.getLong(0))
+            assertFailsWith<SQLite3Exception> { cursor.getLong(0) }
         }, 0)
     }
 
