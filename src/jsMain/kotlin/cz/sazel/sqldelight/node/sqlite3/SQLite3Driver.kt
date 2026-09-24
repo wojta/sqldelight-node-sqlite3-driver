@@ -11,8 +11,9 @@ import kotlin.coroutines.resumeWithException
 suspend fun initSqlite3SqlDriver(
     filename: String, mode: Number? = null,
     schema: SqlSchema<QueryResult.AsyncValue<Unit>>? = null,
+    beginImmediate: Boolean = false,
 ): SQLite3Driver =
-    SQLite3Driver(initSqlite3Database(filename, mode ?: openFlags())).withSchema(schema)
+    SQLite3Driver(initSqlite3Database(filename, mode ?: openFlags()), beginImmediate).withSchema(schema)
 
 private fun initSqlite3Database(
     filename: String, mode: Number = openFlags()
@@ -35,7 +36,10 @@ private suspend fun (Sqlite3.Database).execSuspending(sql: String): Unit =
         }
     }
 
-class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : SqlDriver {
+class SQLite3Driver internal constructor(
+    private val db: Sqlite3.Database,
+    private val beginImmediate: Boolean = false,
+) : SqlDriver {
     private val listeners = mutableMapOf<String, MutableSet<Query.Listener>>()
     private var transaction: Transaction? = null
 
@@ -125,7 +129,7 @@ class SQLite3Driver internal constructor(private val db: Sqlite3.Database) : Sql
         val transaction = Transaction(enclosing)
         this.transaction = transaction
         if (enclosing == null) {
-            db.execSuspending("BEGIN TRANSACTION")
+            db.execSuspending(if (beginImmediate) "BEGIN IMMEDIATE" else "BEGIN TRANSACTION")
         }
 
         return@AsyncValue transaction

@@ -4,6 +4,9 @@ import app.cash.sqldelight.async.coroutines.await
 import app.cash.sqldelight.async.coroutines.awaitCreate
 import app.cash.sqldelight.async.coroutines.awaitQuery
 import app.cash.sqldelight.db.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlin.random.Random
 import kotlin.test.*
 
 typealias InsertFunction = suspend (SqlPreparedStatement.() -> Unit) -> Unit
@@ -246,7 +249,8 @@ class SQLite3DriverTest {
             assertEquals(1, it.getLong(0))
             assertEquals(Long.MAX_VALUE, it.getLong(1))
             assertEquals("Hello", it.getString(2))
-            it.getBytes(3)?.forEachIndexed { index, byte -> assertEquals(index.toByte(), byte) }
+            val bytes = assertNotNull(it.getBytes(3))
+            assertContentEquals(ByteArray(5) { i -> i.toByte() }, bytes)
             assertEquals(Float.MAX_VALUE.toDouble(), it.getDouble(4))
             assertEquals(true, it.getBoolean(5))
         }
@@ -307,5 +311,111 @@ class SQLite3DriverTest {
         }
         assertContains(error.toString(), "table test already exists")
         assertEquals(error.errorNumber, 1)
+    }
+
+    @Test
+    fun blob_round_trips_various_sizes() = runTest { driver ->
+        val sizes = listOf(0, 1, 16, 2048, 1024 * 1024)
+        sizes.forEachIndexed { idx, size ->
+            val id = idx.toLong()
+            val bytes = Random(idx).nextBytes(size)
+            driver.execute(100 + idx, "INSERT INTO nullability_test (id, blob_value) VALUES (?, ?);", 2) {
+                bindLong(0, id)
+                bindBytes(1, bytes)
+            }.await()
+
+            driver.awaitQuery(200 + idx, "SELECT blob_value FROM nullability_test WHERE id = ?", { cursor ->
+                assertTrue(cursor.next().await())
+                assertContentEquals(bytes, assertNotNull(cursor.getBytes(0)))
+            }, 1) { bindLong(0, id) }
+        }
+    }
+
+    /**
+     * Node's Buffer pool means a value's `byteOffset` is not always 0; getBytes must respect it.
+     */
+    @Test
+    fun blob_read_after_many_small_allocations_is_not_corrupted_by_the_pool() = runTest { driver ->
+        val count = 200
+        val expected = (0 until count).map { i -> ByteArray(4) { (i + it).toByte() } }
+        expected.forEachIndexed { i, bytes ->
+            driver.execute(300 + i, "INSERT INTO nullability_test (id, blob_value) VALUES (?, ?);", 2) {
+                bindLong(0, i.toLong())
+                bindBytes(1, bytes)
+            }.await()
+        }
+
+        driver.awaitQuery(500, "SELECT blob_value FROM nullability_test ORDER BY id", { cursor ->
+            var i = 0
+            while (cursor.next().await()) {
+                assertContentEquals(expected[i], assertNotNull(cursor.getBytes(0)))
+                i++
+            }
+            assertEquals(count, i)
+        }, 0)
+    }
+
+    @Test
+    fun blob_column_typeof_is_blob_not_text() = runTest { driver ->
+        driver.execute(600, "INSERT INTO nullability_test (id, blob_value) VALUES (?, ?);", 2) {
+            bindLong(0, 1)
+            bindBytes(1, byteArrayOf(1, 2, 3))
+        }.await()
+
+        driver.awaitQuery(601, "SELECT typeof(blob_value) FROM nullability_test WHERE id = ?", { cursor ->
+            assertTrue(cursor.next().await())
+            assertEquals("blob", cursor.getString(0))
+        }, 1) { bindLong(0, 1) }
+    }
+
+    @Test
+    fun long_round_trips_up_to_2_pow_53_but_not_beyond() = runTest { driver ->
+        val maxSafe = 1L shl 53
+        driver.execute(700, "INSERT INTO nullability_test (id, integer_value) VALUES (?, ?);", 2) {
+            bindLong(0, 1)
+            bindLong(1, maxSafe)
+        }.await()
+        driver.execute(701, "INSERT INTO nullability_test (id, integer_value) VALUES (?, ?);", 2) {
+            bindLong(0, 2)
+            bindLong(1, maxSafe + 1)
+        }.await()
+
+        driver.awaitQuery(702, "SELECT integer_value FROM nullability_test ORDER BY id", { cursor ->
+            assertTrue(cursor.next().await())
+            assertEquals(maxSafe, cursor.getLong(0))
+            assertTrue(cursor.next().await())
+            // 2^53 + 1 is not representable as a JS double; it round-trips as 2^53 instead.
+            assertNotEquals(maxSafe + 1, cursor.getLong(0))
+        }, 0)
+    }
+
+    @Test
+    fun begin_immediate_waits_for_busy_timeout_instead_of_failing_on_lock_upgrade() = kotlinx.coroutines.test.runTest {
+        val file = "test_begin_immediate.db"
+        deleteIfExists(file)
+        try {
+            val driver1 = initSqlite3SqlDriver(file, beginImmediate = true)
+            driver1.execute(0, "PRAGMA journal_mode=WAL", 0).await()
+            driver1.execute(1, "PRAGMA busy_timeout=3000", 0).await()
+            driver1.execute(2, "CREATE TABLE t (id INTEGER)", 0).await()
+
+            val driver2 = initSqlite3SqlDriver(file, beginImmediate = true)
+            driver2.execute(0, "PRAGMA busy_timeout=3000", 0).await()
+
+            driver1.newTransaction().await()
+            driver1.execute(3, "INSERT INTO t VALUES (1)", 0).await()
+
+            val driver2Tx = async { driver2.newTransaction().await() }
+            delay(100)
+            driver1._endTransactionForTests(true)?.await()
+
+            assertNotNull(driver2Tx.await())
+            driver2._endTransactionForTests(true)?.await()
+
+            driver1.close()
+            driver2.close()
+        } finally {
+            unlinkSync(file)
+        }
     }
 }
