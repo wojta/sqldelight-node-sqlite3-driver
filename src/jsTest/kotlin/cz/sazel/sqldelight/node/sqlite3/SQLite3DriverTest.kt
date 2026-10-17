@@ -458,7 +458,7 @@ class SQLite3DriverTest {
     }
 
     @Test
-    fun closeSuspending_reports_errors() = kotlinx.coroutines.test.runTest {
+    fun closeSuspending_reports_errors_and_can_be_retried() = kotlinx.coroutines.test.runTest {
         val file = "close-error-test.db"
         deleteIfExists(file)
         val driver = initSqlite3SqlDriver(file, schema = schema)
@@ -466,6 +466,9 @@ class SQLite3DriverTest {
             driver.newTransaction().await()
             driver.execute(0, "INSERT INTO test VALUES (1, 'a')", 0).await()
             assertFailsWith<SQLite3JsException> { driver.closeSuspending() }
+
+            driver._endTransactionForTests(false)?.await()
+            driver.closeSuspending()
         } finally {
             deleteIfExists(file)
         }
