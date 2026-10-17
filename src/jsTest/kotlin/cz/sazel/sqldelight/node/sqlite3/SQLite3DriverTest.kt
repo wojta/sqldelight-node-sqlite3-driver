@@ -435,4 +435,39 @@ class SQLite3DriverTest {
             unlinkSync(file)
         }
     }
+
+    @Test
+    fun closeSuspending_checkpoints_wal_and_is_idempotent() = kotlinx.coroutines.test.runTest {
+        val file = "close-wal-test.db"
+        listOf(file, "$file-wal", "$file-shm").forEach(::deleteIfExists)
+        val driver = initSqlite3SqlDriver(file, schema = schema)
+        try {
+            driver.executeQuery(null, "PRAGMA journal_mode=WAL", { cursor -> QueryResult.AsyncValue { cursor.next().await() } }, 0).await()
+            driver.execute(null, "INSERT INTO test VALUES (1, 'a')", 0).await()
+            assertTrue(fileExists("$file-wal"))
+
+            driver.closeSuspending()
+            driver.closeSuspending()
+            driver.close()
+
+            assertFalse(fileExists("$file-wal"))
+            assertFalse(fileExists("$file-shm"))
+        } finally {
+            listOf(file, "$file-wal", "$file-shm").forEach(::deleteIfExists)
+        }
+    }
+
+    @Test
+    fun closeSuspending_reports_errors() = kotlinx.coroutines.test.runTest {
+        val file = "close-error-test.db"
+        deleteIfExists(file)
+        val driver = initSqlite3SqlDriver(file, schema = schema)
+        try {
+            driver.newTransaction().await()
+            driver.execute(0, "INSERT INTO test VALUES (1, 'a')", 0).await()
+            assertFailsWith<SQLite3JsException> { driver.closeSuspending() }
+        } finally {
+            deleteIfExists(file)
+        }
+    }
 }

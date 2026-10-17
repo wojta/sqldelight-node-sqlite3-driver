@@ -12,3 +12,5 @@ internal fun unlinkSync(path: String) = NodeFs.unlinkSync(path)
 internal fun deleteIfExists(path: String) {
     if (NodeFs.existsSync(path)) NodeFs.unlinkSync(path)
 }
+
+internal fun fileExists(path: String): Boolean = NodeFs.existsSync(path)
