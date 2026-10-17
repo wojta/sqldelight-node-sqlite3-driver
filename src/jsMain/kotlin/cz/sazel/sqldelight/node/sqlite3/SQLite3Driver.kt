@@ -42,6 +42,7 @@ class SQLite3Driver internal constructor(
 ) : SqlDriver {
     private val listeners = mutableMapOf<String, MutableSet<Query.Listener>>()
     private var transaction: Transaction? = null
+    private var closed = false
 
     internal inner class Transaction(
         override val enclosingTransaction: Transaction?,
@@ -157,9 +158,29 @@ class SQLite3Driver internal constructor(
             .forEach(Query.Listener::queryResultsChanged)
     }
 
+    /**
+     * Fire-and-forget: the database may still be open when this returns.
+     * Use [closeSuspending] to wait for the close to complete.
+     */
     override fun close() {
+        if (closed) return
+        closed = true
         db.close { err ->
-            if (err != null) println(err)
+            if (err != null) console.error(err)
+        }
+    }
+
+    /**
+     * Closes the database and waits for completion; throws [SQLite3JsException] on failure.
+     * Idempotent, node-sqlite3 answers a second close with `SQLITE_MISUSE`.
+     */
+    suspend fun closeSuspending() {
+        if (closed) return
+        closed = true
+        suspendCancellableCoroutine { cont ->
+            db.close { err ->
+                if (err == null) cont.resume(Unit) else cont.resumeWithException(SQLite3JsException(err))
+            }
         }
     }
 
