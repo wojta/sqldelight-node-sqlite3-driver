@@ -166,20 +166,29 @@ class SQLite3Driver internal constructor(
         if (closed) return
         closed = true
         db.close { err ->
-            if (err != null) console.error(err)
+            if (err != null) {
+                closed = false
+                console.error(err)
+            }
         }
     }
 
     /**
      * Closes the database and waits for completion; throws [SQLite3JsException] on failure.
      * Idempotent, node-sqlite3 answers a second close with `SQLITE_MISUSE`.
+     * A failed close (e.g. unfinalized statements) leaves the database open and can be retried.
      */
     suspend fun closeSuspending() {
         if (closed) return
         closed = true
         suspendCancellableCoroutine { cont ->
             db.close { err ->
-                if (err == null) cont.resume(Unit) else cont.resumeWithException(SQLite3JsException(err))
+                if (err == null) {
+                    cont.resume(Unit)
+                } else {
+                    closed = false
+                    cont.resumeWithException(SQLite3JsException(err))
+                }
             }
         }
     }
