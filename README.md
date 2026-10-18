@@ -117,6 +117,9 @@ later upgrades from a read lock:
 val driver = initSqlite3SqlDriver(filename = "test.db", schema = Database.Schema, beginImmediate = true)
 ```
 
+## AI disclaimer
+AI/LLM assistance is from now on used in every step of the development process.
+
 ## Thanks
 
 To _Isuru Rajapakse_ and the project [KStore](https://github.com/xxfast/KStore) which is an inspiration for the set-up
