@@ -118,7 +118,7 @@ val driver = initSqlite3SqlDriver(filename = "test.db", schema = Database.Schema
 ```
 
 ## AI disclaimer
-AI/LLM assistance is from now on used in every step of the development process.
+AI/LLM assistance is used in every step of the development process.
 
 ## Thanks
 
