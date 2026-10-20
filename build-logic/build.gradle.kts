@@ -11,8 +11,3 @@ dependencies {
     implementation(libs.gradle.plugin.owasp.dependencycheck)
     implementation(libs.gradle.plugin.sqldelight)
 }
-
-// kotlin-dsl compiles with Gradle's embedded Kotlin, older than the plugins' metadata
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    compilerOptions.freeCompilerArgs.add("-Xskip-metadata-version-check")
-}
