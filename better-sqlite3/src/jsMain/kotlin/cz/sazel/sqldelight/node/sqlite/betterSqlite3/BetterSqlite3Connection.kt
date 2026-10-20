@@ -1,18 +1,18 @@
 package cz.sazel.sqldelight.node.sqlite.betterSqlite3
 
-import cz.sazel.sqldelight.node.sqlite.InternalSQLite3DriverApi
-import cz.sazel.sqldelight.node.sqlite.SQLite3Connection
-import cz.sazel.sqldelight.node.sqlite.SQLite3Statement
+import cz.sazel.sqldelight.node.sqlite.InternalSQLiteDriverApi
+import cz.sazel.sqldelight.node.sqlite.SQLiteConnection
+import cz.sazel.sqldelight.node.sqlite.SQLiteStatement
 import cz.sazel.sqldelight.node.sqlite.betterSqlite3.externals.BetterSqlite3Database
 import cz.sazel.sqldelight.node.sqlite.betterSqlite3.externals.BetterSqlite3Statement
 import cz.sazel.sqldelight.node.sqlite.betterSqlite3.externals.RowIterator
 import cz.sazel.sqldelight.node.sqlite.withLongsAsBigInt
 import cz.sazel.sqldelight.node.sqlite.wrapJsErrors
 
-@OptIn(InternalSQLite3DriverApi::class)
-internal class BetterSqlite3Connection(private val db: BetterSqlite3Database) : SQLite3Connection {
+@OptIn(InternalSQLiteDriverApi::class)
+internal class BetterSqlite3Connection(private val db: BetterSqlite3Database) : SQLiteConnection {
 
-    override suspend fun prepare(sql: String): SQLite3Statement =
+    override suspend fun prepare(sql: String): SQLiteStatement =
         BetterSqlite3StatementWrapper(wrapJsErrors { db.prepare(sql) })
 
     override suspend fun exec(sql: String) = wrapJsErrors { db.exec(sql) }
@@ -24,9 +24,9 @@ internal class BetterSqlite3Connection(private val db: BetterSqlite3Database) : 
  * better-sqlite3 allows `bind` only once per statement, but transactions reuse statements,
  * so parameters are kept and passed to each `run` / `iterate`.
  */
-@OptIn(InternalSQLite3DriverApi::class)
+@OptIn(InternalSQLiteDriverApi::class)
 @Suppress("SpreadOperator") // parameters go to a JS varargs API
-internal class BetterSqlite3StatementWrapper(private val statement: BetterSqlite3Statement) : SQLite3Statement {
+internal class BetterSqlite3StatementWrapper(private val statement: BetterSqlite3Statement) : SQLiteStatement {
     private var parameters: Array<Any?> = emptyArray()
     private var rows: RowIterator? = null
 

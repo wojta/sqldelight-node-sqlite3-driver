@@ -2,15 +2,15 @@ package cz.sazel.sqldelight.node.sqlite
 
 
 /**
- * Exception of [SQLite3Driver].
+ * Exception of [SQLiteDriver].
  * Usually this class is directly returned in case of error within driver itself.
  */
-open class SQLite3Exception(message: String) : Exception(message)
+open class SQLiteException(message: String) : Exception(message)
 
 /**
  * Exception that occurs from within the SQLite Node.js module of the backend.
  */
-class SQLite3JsException(private val err: Throwable?) : SQLite3Exception(err?.message ?: "unknown error") {
+class SQLiteJsException(private val err: Throwable?) : SQLiteException(err?.message ?: "unknown error") {
     /**
      * SQLite primary result code, `-1` when unknown.
      */

@@ -3,7 +3,7 @@ package cz.sazel.sqldelight.node.sqlite.test
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlSchema
-import cz.sazel.sqldelight.node.sqlite.SQLite3Driver
+import cz.sazel.sqldelight.node.sqlite.SQLiteDriver
 import cz.sazel.sqldelight.node.sqlite.executeAsFlow
 import cz.sazel.sqldelight.dontuse.HockeyPlayer
 import cz.sazel.sqldelight.dontuse.TestDataBaseDontUseQueries
@@ -19,12 +19,12 @@ import kotlin.test.assertNull
 typealias Database = cz.sazel.sqldelight._dont_use.TestDatabaseDontUse
 
 /**
- * Tests through SQLDelight generated code, run against every backend like [SQLite3DriverTest].
+ * Tests through SQLDelight generated code, run against every backend like [SQLiteDriverTest].
  */
 abstract class DriverWithLibraryTest {
-    abstract suspend fun createDriver(filename: String, schema: SqlSchema<QueryResult.AsyncValue<Unit>>): SQLite3Driver
+    abstract suspend fun createDriver(filename: String, schema: SqlSchema<QueryResult.AsyncValue<Unit>>): SQLiteDriver
 
-    private lateinit var driver: SQLite3Driver
+    private lateinit var driver: SQLiteDriver
     private lateinit var playerQueries: TestDataBaseDontUseQueries
     private val dbName = "driver_test.db"
 
@@ -82,7 +82,7 @@ abstract class DriverWithLibraryTest {
     }
 
     /**
-     * Regression: [SQLite3Driver.Transaction.endTransaction] used to restore itself instead of the enclosing
+     * Regression: [SQLiteDriver.Transaction.endTransaction] used to restore itself instead of the enclosing
      * transaction, so every transaction after the first one skipped both BEGIN and ROLLBACK and silently committed.
      */
     @Test

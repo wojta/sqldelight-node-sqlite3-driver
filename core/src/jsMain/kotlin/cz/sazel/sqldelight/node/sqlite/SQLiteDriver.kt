@@ -10,16 +10,16 @@ import kotlin.coroutines.startCoroutine
 /**
  * Creates [schema] (if given) on this driver, used by backend modules' init functions.
  */
-@InternalSQLite3DriverApi
-suspend fun SQLite3Driver.withSchema(schema: SqlSchema<QueryResult.AsyncValue<Unit>>? = null): SQLite3Driver =
+@InternalSQLiteDriverApi
+suspend fun SQLiteDriver.withSchema(schema: SqlSchema<QueryResult.AsyncValue<Unit>>? = null): SQLiteDriver =
     this.also { schema?.create(it)?.await() }
 
 /**
- * Asynchronous SQLDelight driver on top of a [SQLite3Connection] provided by a backend module.
+ * Asynchronous SQLDelight driver on top of a [SQLiteConnection] provided by a backend module.
  * @param beginImmediate start transactions with `BEGIN IMMEDIATE` instead of `BEGIN TRANSACTION`
  */
-class SQLite3Driver(
-    private val connection: SQLite3Connection,
+class SQLiteDriver(
+    private val connection: SQLiteConnection,
     private val beginImmediate: Boolean = false,
 ) : SqlDriver {
     private val listeners = mutableMapOf<String, MutableSet<Query.Listener>>()
@@ -29,7 +29,7 @@ class SQLite3Driver(
     internal inner class Transaction(
         override val enclosingTransaction: Transaction?,
     ) : Transacter.Transaction() {
-        internal val statements = mutableMapOf<Int, SQLite3Statement>()
+        internal val statements = mutableMapOf<Int, SQLiteStatement>()
         override fun endTransaction(successful: Boolean): QueryResult<Unit> = QueryResult.AsyncValue {
             if (enclosingTransaction == null) {
                 statements.values.forEach { it.finalize() }
@@ -45,7 +45,7 @@ class SQLite3Driver(
         internal fun _endTransactionForTests(successful: Boolean) = endTransaction(successful)
     }
 
-    private suspend fun createOrGetStatement(identifier: Int?, sql: String): SQLite3Statement {
+    private suspend fun createOrGetStatement(identifier: Int?, sql: String): SQLiteStatement {
         identifier?.let { transaction?.statements?.get(it) }?.let { return it }
 
         val preparedStatement = connection.prepare(sql)
@@ -59,7 +59,7 @@ class SQLite3Driver(
      * not by the caller. They are reset instead, since some backends block the connection while
      * a statement is in the middle of its rows.
      */
-    private suspend fun SQLite3Statement.release() {
+    private suspend fun SQLiteStatement.release() {
         if (transaction?.statements?.containsValue(this) == true) reset() else finalize()
     }
 
@@ -83,8 +83,8 @@ class SQLite3Driver(
         parameters: Int,
         binders: (SqlPreparedStatement.() -> Unit)?
     ): QueryResult<R> = QueryResult.AsyncValue {
-        var statement: SQLite3Statement? = null
-        val cursor = SQLite3Cursor {
+        var statement: SQLiteStatement? = null
+        val cursor = SQLiteCursor {
             createOrGetStatement(identifier, sql).also {
                 statement = it
                 it.bindAll(parameters, binders)
@@ -113,7 +113,7 @@ class SQLite3Driver(
     /**
      * Use for tests only.
      */
-    @InternalSQLite3DriverApi
+    @InternalSQLiteDriverApi
     fun _endTransactionForTests(successful: Boolean) = transaction?._endTransactionForTests(successful)
 
     override fun addListener(vararg queryKeys: String, listener: Query.Listener) {
@@ -150,7 +150,7 @@ class SQLite3Driver(
     }
 
     /**
-     * Closes the database and waits for completion; throws [SQLite3JsException] on failure.
+     * Closes the database and waits for completion; throws [SQLiteJsException] on failure.
      * Idempotent, backends answer a second close with an error.
      * A failed close (e.g. unfinalized statements in sqlite3) leaves the database open and can be retried.
      */
@@ -165,12 +165,12 @@ class SQLite3Driver(
         }
     }
 
-    private suspend fun SQLite3Statement.bindAll(
+    private suspend fun SQLiteStatement.bindAll(
         parameters: Int,
         binders: (SqlPreparedStatement.() -> Unit)?
     ) {
         if (binders == null || parameters <= 0) return
-        val bound = SQLite3PreparedStatement(parameters)
+        val bound = SQLitePreparedStatement(parameters)
         binders(bound)
         bind(bound.parameters)
     }

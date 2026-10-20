@@ -1,8 +1,8 @@
 package cz.sazel.sqldelight.node.sqlite3
 
-import cz.sazel.sqldelight.node.sqlite.SQLite3Connection
-import cz.sazel.sqldelight.node.sqlite.SQLite3JsException
-import cz.sazel.sqldelight.node.sqlite.SQLite3Statement
+import cz.sazel.sqldelight.node.sqlite.SQLiteConnection
+import cz.sazel.sqldelight.node.sqlite.SQLiteJsException
+import cz.sazel.sqldelight.node.sqlite.SQLiteStatement
 import kotlinx.coroutines.suspendCancellableCoroutine
 import node.sqlite3.Sqlite3
 import kotlin.coroutines.resume
@@ -17,17 +17,17 @@ private external object JsObject {
 private suspend fun callback(block: (callback: (err: Throwable?) -> Unit) -> Unit): Unit =
     suspendCancellableCoroutine { cont ->
         block { err ->
-            if (err == null) cont.resume(Unit) else cont.resumeWithException(SQLite3JsException(err))
+            if (err == null) cont.resume(Unit) else cont.resumeWithException(SQLiteJsException(err))
         }
     }
 
-internal class Sqlite3Connection(private val db: Sqlite3.Database) : SQLite3Connection {
+internal class Sqlite3Connection(private val db: Sqlite3.Database) : SQLiteConnection {
 
-    override suspend fun prepare(sql: String): SQLite3Statement {
+    override suspend fun prepare(sql: String): SQLiteStatement {
         val statement: Sqlite3.Statement = suspendCancellableCoroutine { cont ->
             lateinit var statement: Sqlite3.Statement
             statement = db.prepare(sql) { err ->
-                if (err != null) cont.resumeWithException(SQLite3JsException(err)) else cont.resume(statement)
+                if (err != null) cont.resumeWithException(SQLiteJsException(err)) else cont.resume(statement)
             }
         }
         return Sqlite3StatementWrapper(statement)
@@ -38,7 +38,7 @@ internal class Sqlite3Connection(private val db: Sqlite3.Database) : SQLite3Conn
     override suspend fun close() = callback { db.close(it) }
 }
 
-internal class Sqlite3StatementWrapper(private val statement: Sqlite3.Statement) : SQLite3Statement {
+internal class Sqlite3StatementWrapper(private val statement: Sqlite3.Statement) : SQLiteStatement {
 
     override suspend fun bind(parameters: List<Any?>) = callback { done ->
         // node-sqlite3 can't bind Kotlin's Long (a JS object), only JS numbers
@@ -55,7 +55,7 @@ internal class Sqlite3StatementWrapper(private val statement: Sqlite3.Statement)
         suspendCancellableCoroutine { cont ->
             statement.get { err, row ->
                 when {
-                    err != null -> cont.resumeWithException(SQLite3JsException(err))
+                    err != null -> cont.resumeWithException(SQLiteJsException(err))
                     row != null -> cont.resume(JsObject.values(row))
                     else -> cont.resume(null)
                 }

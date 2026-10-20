@@ -12,7 +12,7 @@ SQLite modules:
 | [`better-sqlite3`](https://www.npmjs.com/package/better-sqlite3) | `node-sqlite-driver-better-sqlite3-js`  | 22+     | no, prebuilt binary in package |
 | [`sqlite3`](https://www.npmjs.com/package/sqlite3)               | `node-sqlite-driver-sqlite3-js`         | 20+     | yes, install script         |
 
-All of them share `node-sqlite-driver-core-js` with the driver itself (`SQLite3Driver`), so you always add core
+All of them share `node-sqlite-driver-core-js` with the driver itself (`SQLiteDriver`), so you always add core
 and one backend.
 
 `node:sqlite` is the easiest choice, no npm package and no install script. `sqlite3` still depends on deprecated
@@ -140,14 +140,15 @@ core and three backends, so the old artifact gets no more releases.
 
    Core has to be added explicitly, backend doesn't bring it to your compile classpath.
 
-2. Fix imports. These moved from `cz.sazel.sqldelight.node.sqlite3` to `cz.sazel.sqldelight.node.sqlite`:
+2. Fix imports. These moved from `cz.sazel.sqldelight.node.sqlite3` to `cz.sazel.sqldelight.node.sqlite` and
+   dropped `3` from the name:
 
-   | Before                                                  | After                                                  |
-   |---------------------------------------------------------|--------------------------------------------------------|
-   | `cz.sazel.sqldelight.node.sqlite3.SQLite3Driver`        | `cz.sazel.sqldelight.node.sqlite.SQLite3Driver`        |
-   | `cz.sazel.sqldelight.node.sqlite3.SQLite3Exception`     | `cz.sazel.sqldelight.node.sqlite.SQLite3Exception`     |
-   | `cz.sazel.sqldelight.node.sqlite3.SQLite3JsException`   | `cz.sazel.sqldelight.node.sqlite.SQLite3JsException`   |
-   | `cz.sazel.sqldelight.node.sqlite3.executeAsFlow`        | `cz.sazel.sqldelight.node.sqlite.executeAsFlow`        |
+   | Before                                                  | After                                                 |
+   |---------------------------------------------------------|-------------------------------------------------------|
+   | `cz.sazel.sqldelight.node.sqlite3.SQLite3Driver`        | `cz.sazel.sqldelight.node.sqlite.SQLiteDriver`        |
+   | `cz.sazel.sqldelight.node.sqlite3.SQLite3Exception`     | `cz.sazel.sqldelight.node.sqlite.SQLiteException`     |
+   | `cz.sazel.sqldelight.node.sqlite3.SQLite3JsException`   | `cz.sazel.sqldelight.node.sqlite.SQLiteJsException`   |
+   | `cz.sazel.sqldelight.node.sqlite3.executeAsFlow`        | `cz.sazel.sqldelight.node.sqlite.executeAsFlow`       |
 
    `initSqlite3SqlDriver` stays in `cz.sazel.sqldelight.node.sqlite3` with the same parameters.
 
@@ -167,8 +168,8 @@ Same steps 1 and 2, only with `node-sqlite-driver-node-sqlite-js` or `node-sqlit
 
 ### Other changes
 
-* `SQLite3JsException.errorNumber` is still SQLite primary result code, now for all backends
-* `close()` logs failures to `console.error` as `SQLite3JsException`, not as raw JS error
+* `SQLiteJsException.errorNumber` is still SQLite primary result code, now for all backends
+* `close()` logs failures to `console.error` as `SQLiteJsException`, not as raw JS error
 * when `BEGIN` fails (e.g. `SQLITE_BUSY`), the driver no longer stays in a broken transaction, next call can
   start new one
 * test database classes from package `cz.sazel.sqldelight._dont_use` aren't shipped in the library anymore
@@ -177,7 +178,7 @@ Same steps 1 and 2, only with `node-sqlite-driver-node-sqlite-js` or `node-sqlit
 
 * `Long` (SQLite `INTEGER`) columns round-trip exactly only up to `2^53` (JS's safe integer
   range), because binding and reading a value both pass through a JS `Number`. Binding or reading
-  a value beyond `2^53` throws `SQLite3Exception` instead of silently losing precision. Same for all backends.
+  a value beyond `2^53` throws `SQLiteException` instead of silently losing precision. Same for all backends.
 * With synchronous backends two connections in same process can't wait for each other's lock, busy timeout
   blocks the event loop and the other connection never gets to commit. Use one connection per database file there.
 

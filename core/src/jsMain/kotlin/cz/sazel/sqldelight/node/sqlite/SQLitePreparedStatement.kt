@@ -3,7 +3,7 @@ package cz.sazel.sqldelight.node.sqlite
 import app.cash.sqldelight.db.SqlPreparedStatement
 import org.khronos.webgl.Int8Array
 
-internal class SQLite3PreparedStatement(parameters: Int) : SqlPreparedStatement {
+internal class SQLitePreparedStatement(parameters: Int) : SqlPreparedStatement {
     val parameters = MutableList<Any?>(parameters) { null }
 
     override fun bindBytes(index: Int, bytes: ByteArray?) {
@@ -17,7 +17,7 @@ internal class SQLite3PreparedStatement(parameters: Int) : SqlPreparedStatement 
 
     override fun bindLong(index: Int, long: Long?) {
         if (long != null && kotlin.math.abs(long) > MAX_SAFE_LONG) {
-            throw SQLite3Exception(
+            throw SQLiteException(
                 "Long value $long exceeds the 2^53 precision limit of the JS Number bridge " +
                         "(see README's Limitations section) and cannot be bound reliably."
             )

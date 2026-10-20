@@ -9,13 +9,13 @@ import cz.sazel.sqldelight.node.sqlite.externals.NodeSqlite
  * @param schema created right after opening when given
  * @param beginImmediate start transactions with `BEGIN IMMEDIATE`
  */
-@OptIn(InternalSQLite3DriverApi::class)
+@OptIn(InternalSQLiteDriverApi::class)
 suspend fun initNodeSqliteSqlDriver(
     filename: String,
     schema: SqlSchema<QueryResult.AsyncValue<Unit>>? = null,
     beginImmediate: Boolean = false,
-): SQLite3Driver =
-    SQLite3Driver(
+): SQLiteDriver =
+    SQLiteDriver(
         NodeSqliteConnection(wrapJsErrors { NodeSqlite.DatabaseSync(filename) }),
         beginImmediate,
     ).withSchema(schema)

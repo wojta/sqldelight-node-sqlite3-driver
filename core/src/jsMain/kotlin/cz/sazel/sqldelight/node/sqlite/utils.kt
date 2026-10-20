@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.flow
 internal const val MAX_SAFE_LONG: Long = 1L shl 53
 
 /**
- * Workaround suspending method to use with SQLite3 async driver.
+ * Workaround suspending method to use with SQLite async driver.
  * Use this instead of non-async method [Query.executeAsList].
  * @return The result set of the underlying SQL statement as a list of RowType.
  */

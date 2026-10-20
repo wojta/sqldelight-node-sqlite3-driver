@@ -1,11 +1,11 @@
 package cz.sazel.sqldelight.node.sqlite
 
 /**
- * Database connection of a SQLite backend module, wrapped by [SQLite3Driver].
- * Implementations throw [SQLite3JsException] on SQLite errors.
+ * Database connection of a SQLite backend module, wrapped by [SQLiteDriver].
+ * Implementations throw [SQLiteJsException] on SQLite errors.
  */
-interface SQLite3Connection {
-    suspend fun prepare(sql: String): SQLite3Statement
+interface SQLiteConnection {
+    suspend fun prepare(sql: String): SQLiteStatement
 
     suspend fun exec(sql: String)
 
@@ -13,9 +13,9 @@ interface SQLite3Connection {
 }
 
 /**
- * Prepared statement of a [SQLite3Connection].
+ * Prepared statement of a [SQLiteConnection].
  */
-interface SQLite3Statement {
+interface SQLiteStatement {
     /**
      * Binds positional parameters for the next [run] or [step].
      * Values are `null`, [Long], [Double], [String] or a Node.js `Buffer`.
@@ -46,27 +46,27 @@ interface SQLite3Statement {
 @RequiresOptIn(level = RequiresOptIn.Level.ERROR)
 @Retention(AnnotationRetention.BINARY)
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.CLASS)
-annotation class InternalSQLite3DriverApi
+annotation class InternalSQLiteDriverApi
 
 /**
- * Converts [SQLite3Statement.bind] parameters for backends that bind JS numbers as REAL,
+ * Converts [SQLiteStatement.bind] parameters for backends that bind JS numbers as REAL,
  * [Long] becomes a JS `BigInt` so it is bound as INTEGER.
  */
-@InternalSQLite3DriverApi
+@InternalSQLiteDriverApi
 fun List<Any?>.withLongsAsBigInt(): Array<Any?> = map { if (it is Long) jsBigInt(it.toString()) else it }.toTypedArray()
 
 @Suppress("UnusedParameter")
 private fun jsBigInt(value: String): dynamic = js("BigInt(value)")
 
 /**
- * Runs [block] and rethrows any JS error as [SQLite3JsException].
+ * Runs [block] and rethrows any JS error as [SQLiteJsException].
  */
-@InternalSQLite3DriverApi
+@InternalSQLiteDriverApi
 inline fun <T> wrapJsErrors(block: () -> T): T =
     try {
         block()
-    } catch (e: SQLite3Exception) {
+    } catch (e: SQLiteException) {
         throw e
     } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
-        throw SQLite3JsException(e)
+        throw SQLiteJsException(e)
     }
