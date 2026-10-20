@@ -31,7 +31,7 @@ Initialization of SQLDelight is needed
 ```kotlin
 plugins {
     kotlin("multiplatform") version "2.4.20" // probably would work even with different one
-    id("app.cash.sqldelight") version "2.4.0"
+    id("app.cash.sqldelight") version "2.4.1"
 }
 ፧
 ፧
