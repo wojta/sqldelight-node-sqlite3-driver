@@ -15,6 +15,10 @@ kotlin {
         useEsModules()
         nodejs {
             kotlinNodeJsEnvSpec.version.set(libs.findVersion("node-js").get().requiredVersion)
+            testTask {
+                // mocha's 2 s default is too short for file-backed tests while other tasks load the disk
+                useMocha { timeout = "10s" }
+            }
         }
         generateTypeScriptDefinitions()
         binaries.library()
