@@ -11,11 +11,15 @@ import kotlinx.coroutines.flow.flow
  */
 internal const val MAX_SAFE_LONG: Long = 1L shl 53
 
+internal const val DEPRECATION_MESSAGE = "node-sqlite3-driver is deprecated, switch to node-sqlite-driver 1.0.0 " +
+    "(cz.sazel.sqldelight:node-sqlite-driver-core-js plus one backend), see README's upgrade notes"
+
 /**
  * Workaround suspending method to use with SQLite3 async driver.
  * Use this instead of non-async method [Query.executeAsList].
  * @return The result set of the underlying SQL statement as a list of RowType.
  */
+@Deprecated(DEPRECATION_MESSAGE, ReplaceWith("executeAsFlow()", "cz.sazel.sqldelight.node.sqlite.executeAsFlow"))
 suspend fun <T : Any> Query<T>.executeAsFlow(): Flow<T> = flow {
     execute { cursor ->
         QueryResult.AsyncValue {

@@ -1,10 +1,22 @@
-![BUILD](https://github.com/wojta/sqldelight-node-sqlite3-driver/actions/workflows/build.yml/badge.svg) [![stability-beta](https://img.shields.io/badge/stability-beta-33bbff.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#beta)
+![BUILD](https://github.com/wojta/sqldelight-node-sqlite3-driver/actions/workflows/build.yml/badge.svg) [![stability-deprecated](https://img.shields.io/badge/stability-deprecated-922222.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#deprecated)
 [![Maven Central](https://img.shields.io/maven-central/v/cz.sazel.sqldelight/node-sqlite3-driver-js?color=blue)](https://central.sonatype.com/artifact/cz.sazel.sqldelight/node-sqlite3-driver-js)
 
 # sqldelight-node-sqlite3-driver
 
 Driver for the library [SQLDelight](https://github.com/cashapp/sqldelight) that
 supports [sqlite3](https://www.npmjs.com/package/sqlite3) Node.js module
+
+> **Deprecated:** 0.9.1 is last release of `node-sqlite3-driver-js`, every class and function in it is marked
+> `@Deprecated`. Driver continues as `node-sqlite-driver` 1.0.0, split into core and three backends
+> (`sqlite3`, `node:sqlite`, `better-sqlite3`):
+>
+> ```kotlin
+> implementation("cz.sazel.sqldelight:node-sqlite-driver-core-js:1.0.0")
+> implementation("cz.sazel.sqldelight:node-sqlite-driver-sqlite3-js:1.0.0") // or node-sqlite / better-sqlite3
+> ```
+>
+> Core classes moved to package `cz.sazel.sqldelight.node.sqlite` and dropped `3` from the name
+> (`SQLite3Driver` is `SQLiteDriver` now). Full steps are in upgrade notes of the 1.0.0 README.
 
 * example here: https://github.com/wojta/example-sqldelight-node-sqlite3-driver
 
@@ -42,7 +54,7 @@ kotlin {
         binaries.executable()
         nodejs {
             dependencies {
-                implementation("cz.sazel.sqldelight:node-sqlite3-driver-js:0.9.0")
+                implementation("cz.sazel.sqldelight:node-sqlite3-driver-js:0.9.1")
             }
         }
     }

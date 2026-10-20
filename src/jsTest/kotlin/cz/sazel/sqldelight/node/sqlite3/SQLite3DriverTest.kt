@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package cz.sazel.sqldelight.node.sqlite3
 
 import app.cash.sqldelight.async.coroutines.await

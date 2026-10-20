@@ -1,8 +1,11 @@
+@file:Suppress("DEPRECATION")
+
 package cz.sazel.sqldelight.node.sqlite3
 
 import app.cash.sqldelight.db.SqlPreparedStatement
 import org.khronos.webgl.Int8Array
 
+@Deprecated(DEPRECATION_MESSAGE)
 internal class SQLite3PreparedStatement(parameters: Int) : SqlPreparedStatement {
     val parameters = MutableList<Any?>(parameters) { null }
 

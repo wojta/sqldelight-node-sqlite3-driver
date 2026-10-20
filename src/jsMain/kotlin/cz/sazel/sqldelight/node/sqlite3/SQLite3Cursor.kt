@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package cz.sazel.sqldelight.node.sqlite3
 
 import app.cash.sqldelight.db.QueryResult
@@ -15,6 +17,7 @@ private external object JsObject {
     fun values(obj: Any): Array<dynamic>
 }
 
+@Deprecated(DEPRECATION_MESSAGE)
 internal class SQLite3Cursor internal constructor(val statementInit: suspend () -> Sqlite3.Statement) : SqlCursor {
 
     private var statement: Sqlite3.Statement? = null

@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package cz.sazel.sqldelight.node.sqlite3
 
 import app.cash.sqldelight.Query
@@ -8,6 +10,7 @@ import node.sqlite3.Sqlite3
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+@Deprecated(DEPRECATION_MESSAGE)
 suspend fun initSqlite3SqlDriver(
     filename: String, mode: Number? = null,
     schema: SqlSchema<QueryResult.AsyncValue<Unit>>? = null,
@@ -36,6 +39,7 @@ private suspend fun (Sqlite3.Database).execSuspending(sql: String): Unit =
         }
     }
 
+@Deprecated(DEPRECATION_MESSAGE, ReplaceWith("SQLiteDriver", "cz.sazel.sqldelight.node.sqlite.SQLiteDriver"))
 class SQLite3Driver internal constructor(
     private val db: Sqlite3.Database,
     private val beginImmediate: Boolean = false,

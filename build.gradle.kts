@@ -154,7 +154,7 @@ mavenPublishing {
 
     pom {
         name.set("node-sqlite3-driver")
-        description.set("Driver for the library SQLDelight that supports sqlite3 Node.js module")
+        description.set("Deprecated, use node-sqlite-driver 1.0.0. Driver for the library SQLDelight that supports sqlite3 Node.js module")
         licenses {
             license {
                 name.set("Apache-2.0")
