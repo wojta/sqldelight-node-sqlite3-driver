@@ -7,6 +7,7 @@
 package node.sqlite3
 
 
+@Deprecated(cz.sazel.sqldelight.node.sqlite3.DEPRECATION_MESSAGE)
 @JsModule("sqlite3")
 external object Sqlite3 {
 
