@@ -3,10 +3,10 @@ package cz.sazel.sqldelight.node.sqlite
 import cz.sazel.sqldelight.node.sqlite.externals.NodeSqlite
 import cz.sazel.sqldelight.node.sqlite.externals.RowIterator
 
-@OptIn(InternalSQLite3DriverApi::class)
-internal class NodeSqliteConnection(private val db: NodeSqlite.DatabaseSync) : SQLite3Connection {
+@OptIn(InternalSQLiteDriverApi::class)
+internal class NodeSqliteConnection(private val db: NodeSqlite.DatabaseSync) : SQLiteConnection {
 
-    override suspend fun prepare(sql: String): SQLite3Statement = NodeSqliteStatement(wrapJsErrors { db.prepare(sql) })
+    override suspend fun prepare(sql: String): SQLiteStatement = NodeSqliteStatement(wrapJsErrors { db.prepare(sql) })
 
     override suspend fun exec(sql: String) = wrapJsErrors { db.exec(sql) }
 
@@ -16,9 +16,9 @@ internal class NodeSqliteConnection(private val db: NodeSqlite.DatabaseSync) : S
 /**
  * node:sqlite has no separate bind step, parameters are kept and passed to each `run` / `iterate`.
  */
-@OptIn(InternalSQLite3DriverApi::class)
+@OptIn(InternalSQLiteDriverApi::class)
 @Suppress("SpreadOperator") // parameters go to a JS varargs API
-internal class NodeSqliteStatement(private val statement: NodeSqlite.StatementSync) : SQLite3Statement {
+internal class NodeSqliteStatement(private val statement: NodeSqlite.StatementSync) : SQLiteStatement {
     private var parameters: Array<Any?> = emptyArray()
     private var rows: RowIterator? = null
 

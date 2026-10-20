@@ -1,13 +1,13 @@
-@file:OptIn(InternalSQLite3DriverApi::class)
+@file:OptIn(InternalSQLiteDriverApi::class)
 
 package cz.sazel.sqldelight.node.sqlite3
 
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlSchema
-import cz.sazel.sqldelight.node.sqlite.InternalSQLite3DriverApi
-import cz.sazel.sqldelight.node.sqlite.SQLite3JsException
+import cz.sazel.sqldelight.node.sqlite.InternalSQLiteDriverApi
+import cz.sazel.sqldelight.node.sqlite.SQLiteJsException
 import cz.sazel.sqldelight.node.sqlite.test.DriverWithLibraryTest
-import cz.sazel.sqldelight.node.sqlite.test.SQLite3DriverTest
+import cz.sazel.sqldelight.node.sqlite.test.SQLiteDriverTest
 import cz.sazel.sqldelight.node.sqlite.test.deleteIfExists
 import cz.sazel.sqldelight.node.sqlite.test.unlinkSync
 import kotlinx.coroutines.async
@@ -16,7 +16,7 @@ import kotlin.test.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 
-class Sqlite3DriverTest : SQLite3DriverTest() {
+class Sqlite3DriverTest : SQLiteDriverTest() {
     override suspend fun createDriver(
         filename: String,
         schema: SqlSchema<QueryResult.AsyncValue<Unit>>?,
@@ -68,7 +68,7 @@ class Sqlite3DriverTest : SQLite3DriverTest() {
         try {
             driver.newTransaction().await()
             driver.execute(0, "INSERT INTO test VALUES (1, 'a')", 0).await()
-            assertFailsWith<SQLite3JsException> { driver.closeSuspending() }
+            assertFailsWith<SQLiteJsException> { driver.closeSuspending() }
 
             driver._endTransactionForTests(false)?.await()
             driver.closeSuspending()

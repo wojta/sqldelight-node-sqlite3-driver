@@ -1,4 +1,4 @@
-@file:OptIn(InternalSQLite3DriverApi::class)
+@file:OptIn(InternalSQLiteDriverApi::class)
 
 package cz.sazel.sqldelight.node.sqlite.test
 
@@ -6,10 +6,10 @@ import app.cash.sqldelight.async.coroutines.await
 import app.cash.sqldelight.async.coroutines.awaitCreate
 import app.cash.sqldelight.async.coroutines.awaitQuery
 import app.cash.sqldelight.db.*
-import cz.sazel.sqldelight.node.sqlite.InternalSQLite3DriverApi
-import cz.sazel.sqldelight.node.sqlite.SQLite3Driver
-import cz.sazel.sqldelight.node.sqlite.SQLite3Exception
-import cz.sazel.sqldelight.node.sqlite.SQLite3JsException
+import cz.sazel.sqldelight.node.sqlite.InternalSQLiteDriverApi
+import cz.sazel.sqldelight.node.sqlite.SQLiteDriver
+import cz.sazel.sqldelight.node.sqlite.SQLiteException
+import cz.sazel.sqldelight.node.sqlite.SQLiteJsException
 import kotlin.random.Random
 import kotlin.test.*
 
@@ -20,12 +20,12 @@ typealias InsertFunction = suspend (SqlPreparedStatement.() -> Unit) -> Unit
 /**
  * Driver tests run against every backend, a backend module extends this class in its tests.
  */
-abstract class SQLite3DriverTest {
+abstract class SQLiteDriverTest {
     abstract suspend fun createDriver(
         filename: String,
         schema: SqlSchema<QueryResult.AsyncValue<Unit>>? = null,
         beginImmediate: Boolean = false,
-    ): SQLite3Driver
+    ): SQLiteDriver
 
     protected val schema = object : SqlSchema<QueryResult.AsyncValue<Unit>> {
         override val version = 1L
@@ -146,7 +146,7 @@ abstract class SQLite3DriverTest {
     }
 
     /**
-     * Regression: [SQLite3Driver.execute] used to discard the statement's `changes` and always return 0.
+     * Regression: [SQLiteDriver.execute] used to discard the statement's `changes` and always return 0.
      */
     @Test
     fun execute_returns_number_of_rows_affected() = runTest { driver ->
@@ -288,14 +288,14 @@ abstract class SQLite3DriverTest {
                 bindString(1, "Hello")
             }
             true
-        } catch (e: SQLite3Exception) {
+        } catch (e: SQLiteException) {
             false
         }
 
         try {
             assertTrue(success)
         } finally {
-            (driver as SQLite3Driver)._endTransactionForTests(success)?.await()
+            (driver as SQLiteDriver)._endTransactionForTests(success)?.await()
         }
     }
 
@@ -311,20 +311,20 @@ abstract class SQLite3DriverTest {
                 bindString(1, "Hello")
             }
             true
-        } catch (e: SQLite3Exception) {
+        } catch (e: SQLiteException) {
             false
         }
 
         try {
             assertFalse(success)
         } finally {
-            (driver as SQLite3Driver)._endTransactionForTests(success)?.await()
+            (driver as SQLiteDriver)._endTransactionForTests(success)?.await()
         }
     }
 
     @Test
     fun exceptions_are_handled_correctly() = runTest { driver ->
-        val error = assertFailsWith<SQLite3JsException> {
+        val error = assertFailsWith<SQLiteJsException> {
             schema.awaitCreate(driver)
         }
         assertContains(error.toString(), "table test already exists")
@@ -401,7 +401,7 @@ abstract class SQLite3DriverTest {
 
         // Beyond 2^53 a Long is no longer representable exactly as a JS double, so binding
         // it would silently store the wrong value; bindLong rejects it instead.
-        assertFailsWith<SQLite3Exception> {
+        assertFailsWith<SQLiteException> {
             driver.execute(702, "INSERT INTO nullability_test (id, integer_value) VALUES (?, ?);", 2) {
                 bindLong(0, 2)
                 bindLong(1, maxSafe + 1)
@@ -417,7 +417,7 @@ abstract class SQLite3DriverTest {
 
         driver.awaitQuery(711, "SELECT integer_value FROM nullability_test WHERE id = 1", { cursor ->
             assertTrue(cursor.next().await())
-            assertFailsWith<SQLite3Exception> { cursor.getLong(0) }
+            assertFailsWith<SQLiteException> { cursor.getLong(0) }
         }, 0)
     }
 
@@ -437,7 +437,7 @@ abstract class SQLite3DriverTest {
             driver2.executeQuery(1, "PRAGMA busy_timeout=0", { QueryResult.AsyncValue { it.next().await() } }, 0).await()
 
             driver1.newTransaction().await()
-            val error = assertFailsWith<SQLite3JsException> { driver2.newTransaction().await() }
+            val error = assertFailsWith<SQLiteJsException> { driver2.newTransaction().await() }
             assertEquals(SQLITE_BUSY, error.errorNumber)
             assertNull(driver2.currentTransaction())
 

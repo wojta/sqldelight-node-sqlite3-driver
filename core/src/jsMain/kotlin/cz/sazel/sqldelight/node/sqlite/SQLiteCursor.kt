@@ -5,9 +5,9 @@ import app.cash.sqldelight.db.SqlCursor
 import org.khronos.webgl.Int8Array
 import org.khronos.webgl.Uint8Array
 
-internal class SQLite3Cursor internal constructor(val statementInit: suspend () -> SQLite3Statement) : SqlCursor {
+internal class SQLiteCursor internal constructor(val statementInit: suspend () -> SQLiteStatement) : SqlCursor {
 
-    private var statement: SQLite3Statement? = null
+    private var statement: SQLiteStatement? = null
     private var row: Array<dynamic>? = null
 
     override fun next(): QueryResult<Boolean> = QueryResult.AsyncValue {
@@ -19,7 +19,7 @@ internal class SQLite3Cursor internal constructor(val statementInit: suspend () 
         row != null
     }
 
-    private fun requireRow(): Array<dynamic> = row ?: throw SQLite3Exception(
+    private fun requireRow(): Array<dynamic> = row ?: throw SQLiteException(
         "Cursor was either not yet iterated or " +
                 "already iterated all over, call next() first."
     )
@@ -33,7 +33,7 @@ internal class SQLite3Cursor internal constructor(val statementInit: suspend () 
         else (value as? Number)?.toLong()
         return long?.also {
             if (kotlin.math.abs(it) > MAX_SAFE_LONG) {
-                throw SQLite3Exception(
+                throw SQLiteException(
                     "Long value $it exceeds the 2^53 precision limit of the JS Number bridge " +
                             "(see README's Limitations section) and may not be the value that was stored."
                 )
