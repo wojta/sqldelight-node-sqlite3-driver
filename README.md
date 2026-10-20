@@ -1,22 +1,22 @@
-![BUILD](https://github.com/wojta/sqldelight-node-sqlite3-driver/actions/workflows/build.yml/badge.svg) [![stability-deprecated](https://img.shields.io/badge/stability-deprecated-922222.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#deprecated)
-[![Maven Central](https://img.shields.io/maven-central/v/cz.sazel.sqldelight/node-sqlite3-driver-js?color=blue)](https://central.sonatype.com/artifact/cz.sazel.sqldelight/node-sqlite3-driver-js)
+![BUILD](https://github.com/wojta/sqldelight-node-sqlite3-driver/actions/workflows/build.yml/badge.svg) [![stability-beta](https://img.shields.io/badge/stability-beta-33bbff.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#beta)
+[![Maven Central](https://img.shields.io/maven-central/v/cz.sazel.sqldelight/node-sqlite-driver-core-js?color=blue)](https://central.sonatype.com/artifact/cz.sazel.sqldelight/node-sqlite-driver-core-js)
 
-# sqldelight-node-sqlite3-driver
+# sqldelight-node-sqlite-driver
 
-Driver for the library [SQLDelight](https://github.com/cashapp/sqldelight) that
-supports [sqlite3](https://www.npmjs.com/package/sqlite3) Node.js module
+Driver for the library [SQLDelight](https://github.com/cashapp/sqldelight) that runs on Node.js with one of three
+SQLite modules:
 
-> **Deprecated:** 0.9.1 is last release of `node-sqlite3-driver-js`, every class and function in it is marked
-> `@Deprecated`. Driver continues as `node-sqlite-driver` 1.0.0, split into core and three backends
-> (`sqlite3`, `node:sqlite`, `better-sqlite3`):
->
-> ```kotlin
-> implementation("cz.sazel.sqldelight:node-sqlite-driver-core-js:1.0.0")
-> implementation("cz.sazel.sqldelight:node-sqlite-driver-sqlite3-js:1.0.0") // or node-sqlite / better-sqlite3
-> ```
->
-> Core classes moved to package `cz.sazel.sqldelight.node.sqlite` and dropped `3` from the name
-> (`SQLite3Driver` is `SQLiteDriver` now). Full steps are in upgrade notes of the 1.0.0 README.
+| Backend                                                          | Artifact                                | Node.js | Native build                |
+|------------------------------------------------------------------|-----------------------------------------|---------|-----------------------------|
+| [`node:sqlite`](https://nodejs.org/api/sqlite.html)              | `node-sqlite-driver-node-sqlite-js`     | 24+     | no, built into Node.js      |
+| [`better-sqlite3`](https://www.npmjs.com/package/better-sqlite3) | `node-sqlite-driver-better-sqlite3-js`  | 22+     | no, prebuilt binary in package |
+| [`sqlite3`](https://www.npmjs.com/package/sqlite3)               | `node-sqlite-driver-sqlite3-js`         | 20+     | yes, install script         |
+
+All of them share `node-sqlite-driver-core-js` with the driver itself (`SQLite3Driver`), so you always add core
+and one backend.
+
+`node:sqlite` is the easiest choice, no npm package and no install script. `sqlite3` still depends on deprecated
+`prebuild-install`, which prints a warning on every clean install.
 
 * example here: https://github.com/wojta/example-sqldelight-node-sqlite3-driver
 
@@ -30,8 +30,8 @@ Initialization of SQLDelight is needed
 
 ```kotlin
 plugins {
-    kotlin("js") version "2.3.21" // probably would work even with different one
-    id("app.cash.sqldelight") version "2.4.0" // for version 0.5.0 and higher
+    kotlin("multiplatform") version "2.4.20" // probably would work even with different one
+    id("app.cash.sqldelight") version "2.4.0"
 }
 ፧
 ፧
@@ -46,52 +46,49 @@ sqldelight {
 }
 ```
 
-Add dependency to the driver:
+Add dependency to core and to one backend:
 
 ```kotlin
 kotlin {
     js {
         binaries.executable()
-        nodejs {
-            dependencies {
-                implementation("cz.sazel.sqldelight:node-sqlite3-driver-js:0.9.1")
-            }
+        nodejs()
+    }
+    sourceSets {
+        jsMain.dependencies {
+            implementation("cz.sazel.sqldelight:node-sqlite-driver-core-js:0.9.0")
+            implementation("cz.sazel.sqldelight:node-sqlite-driver-node-sqlite-js:0.9.0")
+            // or node-sqlite-driver-better-sqlite3-js / node-sqlite-driver-sqlite3-js
         }
     }
 }
 ```
 
-You'll also need to install binary bindings for SQLite3. This can be done by adding a special Gradle task that runs yarn
-in the `sqlite3` node package directory. It needs to run `yarn` first to download platform specific binary dependencies.
+### Install scripts for `sqlite3`
+
+Kotlin's Yarn skips npm install scripts by default, so `sqlite3` would miss its native binding. Turn them on
+in the root project:
 
 ```kotlin
-val bindingsInstall = tasks.register("sqlite3BindingsInstall") {
-    doLast {
-        val sqlite3moduleDir = layout.buildDirectory.get().dir("js/node_modules/sqlite3").asFile
-        if (!sqlite3moduleDir.resolve("build").exists()) {
-            exec {
-                workingDir = sqlite3moduleDir
-                val yarnExecutable = yarn.environment.executable
-                val yarnPath = file(yarnExecutable).parent
-                val nodePath = file(kotlinNodeJsEnvSpec.executable).parent
-                environment(
-                    "PATH", System.getenv("PATH") + ":$yarnPath:$nodePath"
-                )
-                commandLine(yarnExecutable)
-            }
-        }
-    }
-}.get()
-tasks["kotlinNpmInstall"].finalizedBy(bindingsInstall)
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootEnvSpec
+
+plugins.withType<YarnPlugin> {
+    the<YarnRootEnvSpec>().ignoreScripts.set(false)
+}
 ```
+
+`node:sqlite` and `better-sqlite3` don't need this.
 
 ## Simple example
 
 Queries are written as here - https://sqldelight.github.io/sqldelight/2.4.0/js_sqlite/#using-queries
 
 ```kotlin
+import cz.sazel.sqldelight.node.sqlite.initNodeSqliteSqlDriver
+
 suspend fun main() {
-    val driver = initSqlite3SqlDriver(filename = "test.db", schema = Database.Schema)
+    val driver = initNodeSqliteSqlDriver(filename = "test.db", schema = Database.Schema)
 
     val database = Database(driver)
 
@@ -109,24 +106,46 @@ suspend fun main() {
 }
 ```
 
+Init function per backend:
+
+| Backend          | Function                                                                     |
+|------------------|------------------------------------------------------------------------------|
+| `node:sqlite`    | `cz.sazel.sqldelight.node.sqlite.initNodeSqliteSqlDriver`                     |
+| `better-sqlite3` | `cz.sazel.sqldelight.node.sqlite.betterSqlite3.initBetterSqlite3SqlDriver`    |
+| `sqlite3`        | `cz.sazel.sqldelight.node.sqlite3.initSqlite3SqlDriver`                       |
+
 Note: Please use `awaitAsList()` or `executeAsFlow()` in queries instead of `executeAsList()`
 as that API is not suspending and will throw an exception with this driver.
+
+The API is asynchronous for all backends. `node:sqlite` and `better-sqlite3` are synchronous underneath,
+so their calls block the event loop for the time the query runs.
+
+## Migration from `node-sqlite3-driver`
+
+Up to 0.9.0 the driver was a single artifact `node-sqlite3-driver-js` for `sqlite3` only. To keep `sqlite3`:
+
+* replace dependency with `node-sqlite-driver-core-js` and `node-sqlite-driver-sqlite3-js`
+* `SQLite3Driver`, `SQLite3Exception`, `SQLite3JsException` and `executeAsFlow` moved from package
+  `cz.sazel.sqldelight.node.sqlite3` to `cz.sazel.sqldelight.node.sqlite`, `initSqlite3SqlDriver` stays where it was
+* `sqlite3BindingsInstall` task can be replaced with `ignoreScripts` setting above
 
 ## Limitations
 
 * `Long` (SQLite `INTEGER`) columns round-trip exactly only up to `2^53` (JS's safe integer
   range), because binding and reading a value both pass through a JS `Number`. Binding or reading
-  a value beyond `2^53` throws `SQLite3Exception` instead of silently losing precision.
+  a value beyond `2^53` throws `SQLite3Exception` instead of silently losing precision. Same for all backends.
+* With synchronous backends two connections in same process can't wait for each other's lock, busy timeout
+  blocks the event loop and the other connection never gets to commit. Use one connection per database file there.
 
 ## Transactions
 
 By default a transaction starts with `BEGIN TRANSACTION` (deferred locking). Pass
-`beginImmediate = true` to `initSqlite3SqlDriver(...)` to start with `BEGIN IMMEDIATE` instead,
+`beginImmediate = true` to init function to start with `BEGIN IMMEDIATE` instead,
 which acquires the write lock up front instead of failing with `SQLITE_BUSY` when the transaction
 later upgrades from a read lock:
 
 ```kotlin
-val driver = initSqlite3SqlDriver(filename = "test.db", schema = Database.Schema, beginImmediate = true)
+val driver = initNodeSqliteSqlDriver(filename = "test.db", schema = Database.Schema, beginImmediate = true)
 ```
 
 ## AI disclaimer

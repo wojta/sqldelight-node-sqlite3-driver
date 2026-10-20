@@ -98,7 +98,7 @@ jobs:
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
           OSS_INDEX_TOKEN: ${{ secrets.OSS_INDEX_TOKEN }}
-        run: ./gradlew dependencyCheckAnalyze
+        run: ./gradlew dependencyCheckAggregate
 
       - name: Upload dependency-check report
         if: always()

@@ -4,6 +4,7 @@ dokka = "2.2.0"
 kotlin = "2.4.20"
 kotlinCoroutines = "1.11.0"
 kover = "0.9.9"
+node-better-sqlite3 = "13.0.3"
 node-sqlite3 = "6.0.1"
 node-js = "24.18.1"
 maven-publish = "0.37.0"
@@ -16,11 +17,11 @@ kotlin-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-te
 sqldelight-async-extensions-js = { module = "app.cash.sqldelight:async-extensions-js", version.ref = "sqldelight" }
 sqldelight-runtime-js = { module = "app.cash.sqldelight:runtime-js", version.ref = "sqldelight" }
 
-[plugins]
-detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
-dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
-kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
-kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
-sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
-maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
-owasp-dependencycheck = { id = "org.owasp.dependencycheck", version.ref = "owasp-dependencycheck" }
+# Gradle plugins used by build-logic convention plugins
+gradle-plugin-detekt = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
+gradle-plugin-dokka = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
+gradle-plugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+gradle-plugin-kover = { module = "org.jetbrains.kotlinx:kover-gradle-plugin", version.ref = "kover" }
+gradle-plugin-maven-publish = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "maven-publish" }
+gradle-plugin-owasp-dependencycheck = { module = "org.owasp:dependency-check-gradle", version.ref = "owasp-dependencycheck" }
+gradle-plugin-sqldelight = { module = "app.cash.sqldelight:gradle-plugin", version.ref = "sqldelight" }
