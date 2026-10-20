@@ -56,8 +56,8 @@ kotlin {
     }
     sourceSets {
         jsMain.dependencies {
-            implementation("cz.sazel.sqldelight:node-sqlite-driver-core-js:0.9.0")
-            implementation("cz.sazel.sqldelight:node-sqlite-driver-node-sqlite-js:0.9.0")
+            implementation("cz.sazel.sqldelight:node-sqlite-driver-core-js:1.0.0")
+            implementation("cz.sazel.sqldelight:node-sqlite-driver-node-sqlite-js:1.0.0")
             // or node-sqlite-driver-better-sqlite3-js / node-sqlite-driver-sqlite3-js
         }
     }
@@ -120,14 +120,58 @@ as that API is not suspending and will throw an exception with this driver.
 The API is asynchronous for all backends. `node:sqlite` and `better-sqlite3` are synchronous underneath,
 so their calls block the event loop for the time the query runs.
 
-## Migration from `node-sqlite3-driver`
+## Upgrade from 0.9.x to 1.0.0
 
-Up to 0.9.0 the driver was a single artifact `node-sqlite3-driver-js` for `sqlite3` only. To keep `sqlite3`:
+Up to 0.9.x the driver was single artifact `node-sqlite3-driver-js` for `sqlite3` only. In 1.0.0 it is split into
+core and three backends, so the old artifact gets no more releases.
 
-* replace dependency with `node-sqlite-driver-core-js` and `node-sqlite-driver-sqlite3-js`
-* `SQLite3Driver`, `SQLite3Exception`, `SQLite3JsException` and `executeAsFlow` moved from package
-  `cz.sazel.sqldelight.node.sqlite3` to `cz.sazel.sqldelight.node.sqlite`, `initSqlite3SqlDriver` stays where it was
-* `sqlite3BindingsInstall` task can be replaced with `ignoreScripts` setting above
+### Keep `sqlite3`
+
+1. Replace the dependency:
+
+   ```kotlin
+   // before
+   implementation("cz.sazel.sqldelight:node-sqlite3-driver-js:0.9.0")
+
+   // after
+   implementation("cz.sazel.sqldelight:node-sqlite-driver-core-js:1.0.0")
+   implementation("cz.sazel.sqldelight:node-sqlite-driver-sqlite3-js:1.0.0")
+   ```
+
+   Core has to be added explicitly, backend doesn't bring it to your compile classpath.
+
+2. Fix imports. These moved from `cz.sazel.sqldelight.node.sqlite3` to `cz.sazel.sqldelight.node.sqlite`:
+
+   | Before                                                  | After                                                  |
+   |---------------------------------------------------------|--------------------------------------------------------|
+   | `cz.sazel.sqldelight.node.sqlite3.SQLite3Driver`        | `cz.sazel.sqldelight.node.sqlite.SQLite3Driver`        |
+   | `cz.sazel.sqldelight.node.sqlite3.SQLite3Exception`     | `cz.sazel.sqldelight.node.sqlite.SQLite3Exception`     |
+   | `cz.sazel.sqldelight.node.sqlite3.SQLite3JsException`   | `cz.sazel.sqldelight.node.sqlite.SQLite3JsException`   |
+   | `cz.sazel.sqldelight.node.sqlite3.executeAsFlow`        | `cz.sazel.sqldelight.node.sqlite.executeAsFlow`        |
+
+   `initSqlite3SqlDriver` stays in `cz.sazel.sqldelight.node.sqlite3` with the same parameters.
+
+3. Replace `sqlite3BindingsInstall` task with `ignoreScripts` setting from
+   [Install scripts for `sqlite3`](#install-scripts-for-sqlite3). The task still works if you keep it.
+
+### Switch to `node:sqlite` or `better-sqlite3`
+
+Same steps 1 and 2, only with `node-sqlite-driver-node-sqlite-js` or `node-sqlite-driver-better-sqlite3-js`, and:
+
+* call `initNodeSqliteSqlDriver` / `initBetterSqlite3SqlDriver` instead of `initSqlite3SqlDriver`, there is no
+  `mode` parameter, file is always opened for read and write and created when missing
+* drop `sqlite3BindingsInstall` task and `ignoreScripts` setting, none of them is needed
+* `node:sqlite` needs Node.js 24 or newer, check `nodejs` version in your Gradle set up
+* existing database files work as they are, all three backends use same SQLite file format
+* see [Limitations](#limitations) about two connections to same file
+
+### Other changes
+
+* `SQLite3JsException.errorNumber` is still SQLite primary result code, now for all backends
+* `close()` logs failures to `console.error` as `SQLite3JsException`, not as raw JS error
+* when `BEGIN` fails (e.g. `SQLITE_BUSY`), the driver no longer stays in a broken transaction, next call can
+  start new one
+* test database classes from package `cz.sazel.sqldelight._dont_use` aren't shipped in the library anymore
 
 ## Limitations
 
