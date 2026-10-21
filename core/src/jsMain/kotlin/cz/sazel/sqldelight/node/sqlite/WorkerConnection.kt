@@ -34,6 +34,8 @@ suspend fun openWorkerConnection(taskName: String, registrarModule: String, file
     val scope = CoroutineScope(SupervisorJob())
     val pool = ThreadPool(count = 1, coroutineScope = scope, registrarModules = listOf(registrarModule))
     pool.start()
+    // an idle driver doesn't keep Node.js running, the port is referenced only while a request waits for reply
+    pool.unref()
     val channel: dynamic = js("new MessageChannel()")
     val connection = WorkerSQLiteConnection(channel.port1, pool, scope)
     try {
@@ -217,7 +219,7 @@ private class WorkerSQLiteConnection(
 
     init {
         port.on("message") { reply: dynamic ->
-            val continuation = pending.remove(reply.id.unsafeCast<Int>())
+            val continuation = untrack(reply.id.unsafeCast<Int>())
             val error = reply.error
             when {
                 continuation == null -> Unit
@@ -236,11 +238,20 @@ private class WorkerSQLiteConnection(
                 // the worker thread died, nothing pending gets a reply anymore
                 val waiting = pending.values.toList()
                 pending.clear()
+                port.unref()
                 waiting.forEach { it.resumeWithException(SQLiteJsException(e)) }
             }
         }
-        suspendCancellableCoroutine<dynamic> { pending[OPEN_REQUEST_ID] = it }
+        suspendCancellableCoroutine<dynamic> { track(OPEN_REQUEST_ID, it) }
     }
+
+    private fun track(id: Int, continuation: CancellableContinuation<dynamic>) {
+        if (pending.isEmpty()) port.ref()
+        pending[id] = continuation
+    }
+
+    private fun untrack(id: Int): CancellableContinuation<dynamic>? =
+        pending.remove(id).also { if (pending.isEmpty()) port.unref() }
 
     suspend fun request(op: String, fill: (dynamic) -> Unit = {}): dynamic = suspendCancellableCoroutine { cont ->
         val id = nextRequestId++
@@ -248,12 +259,12 @@ private class WorkerSQLiteConnection(
         request.id = id
         request.op = op
         fill(request)
-        pending[id] = cont
-        cont.invokeOnCancellation { pending.remove(id) }
+        track(id, cont)
+        cont.invokeOnCancellation { untrack(id) }
         try {
             port.postMessage(request)
         } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
-            pending.remove(id)
+            untrack(id)
             cont.resumeWithException(SQLiteJsException(e))
         }
     }
