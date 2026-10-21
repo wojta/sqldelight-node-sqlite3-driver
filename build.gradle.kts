@@ -34,7 +34,7 @@ dependencyCheck {
     scanSet.setFrom(file("$projectDir/kotlin-js-store/yarn.lock")) // npm dependencies lockfile
     // only the shipped js target's classpath, not detekt/dokka's own bundled tool jars
     scanConfigurations = listOf("jsCompileClasspath", "jsRuntimeClasspath")
-    skipProjects = listOf(":driver-test")
+    skipProjects = listOf(":driver-test", ":benchmark")
     nvd {
         apiKey = System.getenv("NVD_API_KEY") ?: localProperty("nvd.apiKey")
     }
