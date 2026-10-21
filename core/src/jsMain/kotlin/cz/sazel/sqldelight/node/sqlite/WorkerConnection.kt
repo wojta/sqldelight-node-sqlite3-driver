@@ -17,11 +17,16 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 private const val OPEN_REQUEST_ID = 0
+private const val NO_REPLY = -1
 private const val ROW_BATCH = 256
+private const val STATEMENT_CACHE_SIZE = 32
 
 /**
  * Opens a connection in its own worker thread. The thread imports [registrarModule], which registers
  * a [SQLiteConnectionTask] as [taskName]. Requests and rows go over a `MessagePort` by structured clone.
+ *
+ * The port keeps message order and the worker handles requests one by one, so a statement is prepared, bound
+ * and run or stepped in a single round-trip, and resetting or finalizing it needs no reply at all.
  */
 @InternalSQLiteDriverApi
 suspend fun openWorkerConnection(taskName: String, registrarModule: String, filename: String): SQLiteConnection {
@@ -67,10 +72,11 @@ class SQLiteConnectionTask(private val open: (filename: String) -> SQLiteConnect
             val id = request.id.unsafeCast<Int>()
             val op = request.op.unsafeCast<String>()
             try {
-                port.postMessage(reply(id, server.handle(op, request)))
+                val value = server.handle(op, request)
+                if (id != NO_REPLY) port.postMessage(reply(id, value))
                 if (op == "close") break
             } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
-                port.postMessage(errorReply(id, e))
+                if (id != NO_REPLY) port.postMessage(errorReply(id, e)) else console.error(e)
             }
         }
     }
@@ -95,26 +101,55 @@ class SQLiteConnectionTask(private val open: (filename: String) -> SQLiteConnect
 }
 
 private class ConnectionServer(private val connection: SQLiteConnection) {
-    private val statements = mutableMapOf<Int, SQLiteStatement>()
-    private var nextStatementId = 0
+    private class Prepared(val sql: String, val statement: SQLiteStatement)
+
+    private val statements = mutableMapOf<Int, Prepared>()
+
+    /** Finalized statements kept for reuse by their SQL, oldest first. */
+    private val cache = ArrayDeque<Prepared>()
 
     suspend fun handle(op: String, request: dynamic): Any? = when (op) {
-        "prepare" -> nextStatementId++.also { statements[it] = connection.prepare(request.sql.unsafeCast<String>()) }
         "exec" -> connection.exec(request.sql.unsafeCast<String>()).let { null }
-        "close" -> connection.close().let { null }
-        else -> handleStatement(op, request.stmt.unsafeCast<Int>(), request)
+        "close" -> close().let { null }
+        "reset" -> statements[request.stmt.unsafeCast<Int>()]?.statement?.reset().let { null }
+        "finalize" -> release(request.stmt.unsafeCast<Int>()).let { null }
+        else -> handleStatement(op, request)
     }
 
-    private suspend fun handleStatement(op: String, id: Int, request: dynamic): Any? {
-        val statement = statements[id] ?: throw SQLiteException("Unknown statement $id")
+    private suspend fun handleStatement(op: String, request: dynamic): Any? {
+        val id = request.stmt.unsafeCast<Int>()
+        val sql = request.sql.unsafeCast<String?>()
+        val statement = statements[id]?.statement
+            ?: sql?.let { prepare(id, it) }
+            ?: throw SQLiteException("Unknown statement $id")
+        if (request.reset == true) statement.reset()
+        request.params.unsafeCast<Array<Any?>?>()?.let { statement.bind(it.toList()) }
         return when (op) {
-            "bind" -> statement.bind(request.params.unsafeCast<Array<Any?>>().toList()).let { null }
             "run" -> statement.run().toDouble()
             "step" -> stepBatch(statement)
-            "reset" -> statement.reset().let { null }
-            "finalize" -> statement.finalize().also { statements.remove(id) }.let { null }
             else -> throw SQLiteException("Unknown request $op")
         }
+    }
+
+    private suspend fun prepare(id: Int, sql: String): SQLiteStatement {
+        val index = cache.indexOfLast { it.sql == sql }
+        val prepared = if (index >= 0) cache.removeAt(index) else Prepared(sql, connection.prepare(sql))
+        statements[id] = prepared
+        return prepared.statement
+    }
+
+    private suspend fun release(id: Int) {
+        val prepared = statements.remove(id) ?: return
+        prepared.statement.reset()
+        cache.addLast(prepared)
+        if (cache.size > STATEMENT_CACHE_SIZE) cache.removeFirst().statement.finalize()
+    }
+
+    private suspend fun close() {
+        (cache + statements.values).forEach { it.statement.finalize() }
+        cache.clear()
+        statements.clear()
+        connection.close()
     }
 
     private suspend fun stepBatch(statement: SQLiteStatement): dynamic {
@@ -142,6 +177,7 @@ private class WorkerSQLiteConnection(
 ) : SQLiteConnection {
     private val pending = mutableMapOf<Int, CancellableContinuation<dynamic>>()
     private var nextRequestId = OPEN_REQUEST_ID + 1
+    private var nextStatementId = 0
     private lateinit var ticket: JobTicket<Unit>
 
     init {
@@ -187,8 +223,17 @@ private class WorkerSQLiteConnection(
         }
     }
 
-    override suspend fun prepare(sql: String): SQLiteStatement =
-        WorkerSQLiteStatement(this, request("prepare") { it.sql = sql }.unsafeCast<Int>())
+    /** Errors in [fill] or of a closed port are dropped, the worker logs failures of these requests itself. */
+    fun send(op: String, fill: (dynamic) -> Unit) {
+        val request: dynamic = js("({})")
+        request.id = NO_REPLY
+        request.op = op
+        fill(request)
+        runCatching { port.postMessage(request) }
+    }
+
+    /** The worker prepares it with the first request that uses it. */
+    override suspend fun prepare(sql: String): SQLiteStatement = WorkerSQLiteStatement(this, nextStatementId++, sql)
 
     override suspend fun exec(sql: String) {
         request("exec") { it.sql = sql }
@@ -212,11 +257,20 @@ private class WorkerSQLiteConnection(
 }
 
 /**
- * Rows are fetched from the worker in batches of [ROW_BATCH].
+ * Parameters are sent with the next [run] or [step], rows come in batches of [ROW_BATCH].
  */
 @OptIn(InternalSQLiteDriverApi::class)
-private class WorkerSQLiteStatement(private val connection: WorkerSQLiteConnection, private val id: Int) :
-    SQLiteStatement {
+private class WorkerSQLiteStatement(
+    private val connection: WorkerSQLiteConnection,
+    private val id: Int,
+    private val sql: String,
+) : SQLiteStatement {
+    private var prepared = false
+    private var sent = false
+    private var parameters: Array<Any?>? = null
+    private var restart = true
+    /** The worker has a row iterator in progress, which blocks other statements in better-sqlite3. */
+    private var iterating = false
     private var rows: Array<dynamic>? = null
     private var position = 0
     private var done = false
@@ -224,12 +278,12 @@ private class WorkerSQLiteStatement(private val connection: WorkerSQLiteConnecti
     override suspend fun bind(parameters: List<Any?>) {
         clearRows()
         // a Kotlin Long doesn't survive structured clone
-        val params = parameters.withLongsAsBigInt()
-        request("bind") { it.params = params }
+        this.parameters = parameters.withLongsAsBigInt()
     }
 
     override suspend fun run(): Long {
         clearRows()
+        iterating = false
         return request("run").unsafeCast<Double>().toLong()
     }
 
@@ -239,18 +293,22 @@ private class WorkerSQLiteStatement(private val connection: WorkerSQLiteConnecti
             rows = batch.rows.unsafeCast<Array<dynamic>>()
             position = 0
             done = batch.done.unsafeCast<Boolean>()
+            iterating = !done
         }
         return if (hasBufferedRow()) rows!![position++] else null
     }
 
     override suspend fun reset() {
         clearRows()
-        request("reset")
+        if (iterating) {
+            iterating = false
+            connection.send("reset") { it.stmt = id }
+        }
     }
 
     override suspend fun finalize() {
         clearRows()
-        request("finalize")
+        if (sent) connection.send("finalize") { it.stmt = id }
     }
 
     private fun hasBufferedRow() = rows?.let { position < it.size } ?: false
@@ -259,11 +317,22 @@ private class WorkerSQLiteStatement(private val connection: WorkerSQLiteConnecti
         rows = null
         position = 0
         done = false
+        restart = true
     }
 
-    private suspend fun request(op: String, fill: (dynamic) -> Unit = {}): dynamic =
-        connection.request(op) {
+    private suspend fun request(op: String): dynamic {
+        val parameters = parameters
+        val restart = restart
+        this.parameters = null
+        this.restart = false
+        sent = true
+        val reply = connection.request(op) {
             it.stmt = id
-            fill(it)
+            if (!prepared) it.sql = sql
+            if (parameters != null) it.params = parameters
+            if (restart) it.reset = true
         }
+        prepared = true
+        return reply
+    }
 }
