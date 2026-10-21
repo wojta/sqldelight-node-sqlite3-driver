@@ -1,0 +1,42 @@
+CREATE TABLE item (
+  id INTEGER PRIMARY KEY NOT NULL,
+  code TEXT NOT NULL,
+  category INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  amount REAL NOT NULL
+);
+
+CREATE UNIQUE INDEX item_code ON item(code);
+
+CREATE INDEX item_category ON item(category);
+
+CREATE TABLE target_item (
+  id INTEGER PRIMARY KEY NOT NULL,
+  code TEXT NOT NULL,
+  category INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  amount REAL NOT NULL
+);
+
+insertItem:
+INSERT INTO item(id, code, category, name, amount)
+VALUES (?, ?, ?, ?, ?);
+
+countItems:
+SELECT count(*) FROM item;
+
+selectByCode:
+SELECT * FROM item WHERE code = ?;
+
+selectFrom:
+SELECT * FROM item WHERE id >= ? ORDER BY id LIMIT ?;
+
+insertTarget:
+INSERT INTO target_item(id, code, category, name, amount)
+VALUES (?, ?, ?, ?, ?);
+
+clearTarget:
+DELETE FROM target_item;
+
+countTarget:
+SELECT count(*) FROM target_item;
