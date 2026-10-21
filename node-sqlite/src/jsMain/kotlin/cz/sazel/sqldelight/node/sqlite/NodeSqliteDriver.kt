@@ -21,11 +21,13 @@ private val registration: Unit = TaskRegistry.register(TASK_NAME) {
  * Opens [filename] with the `node:sqlite` module built into Node.js 24 and newer, in its own worker thread.
  * @param schema created right after opening when given
  * @param beginImmediate start transactions with `BEGIN IMMEDIATE`
+ * @param readers extra connections for `SELECT` queries outside transactions, each in its own worker thread, so
+ * reads run in parallel; switches the database to WAL, needs a database file; since 1.1.0
  */
 @OptIn(InternalSQLiteDriverApi::class)
 suspend fun initNodeSqliteSqlDriver(
     filename: String,
     schema: SqlSchema<QueryResult.AsyncValue<Unit>>? = null,
     beginImmediate: Boolean = false,
-): SQLiteDriver =
-    SQLiteDriver(openWorkerConnection(TASK_NAME, moduleUrl, filename), beginImmediate).withSchema(schema)
+    readers: Int = 0,
+): SQLiteDriver = openWorkerDriver(TASK_NAME, moduleUrl, filename, beginImmediate, readers).withSchema(schema)

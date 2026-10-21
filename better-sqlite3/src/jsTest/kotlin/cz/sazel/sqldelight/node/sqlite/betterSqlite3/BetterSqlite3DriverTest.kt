@@ -3,6 +3,7 @@ package cz.sazel.sqldelight.node.sqlite.betterSqlite3
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlSchema
 import cz.sazel.sqldelight.node.sqlite.test.DriverWithLibraryTest
+import cz.sazel.sqldelight.node.sqlite.test.ReaderPoolTest
 import cz.sazel.sqldelight.node.sqlite.test.SQLiteDriverTest
 
 class BetterSqlite3DriverTest : SQLiteDriverTest() {
@@ -16,4 +17,9 @@ class BetterSqlite3DriverTest : SQLiteDriverTest() {
 class BetterSqlite3DriverWithLibraryTest : DriverWithLibraryTest() {
     override suspend fun createDriver(filename: String, schema: SqlSchema<QueryResult.AsyncValue<Unit>>) =
         initBetterSqlite3SqlDriver(filename, schema = schema)
+}
+
+class BetterSqlite3ReaderPoolTest : ReaderPoolTest() {
+    override suspend fun createDriver(filename: String, schema: SqlSchema<QueryResult.AsyncValue<Unit>>?, readers: Int) =
+        initBetterSqlite3SqlDriver(filename, schema = schema, readers = readers)
 }

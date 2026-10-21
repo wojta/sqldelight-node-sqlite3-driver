@@ -14,14 +14,28 @@ import kotlin.coroutines.startCoroutine
 suspend fun SQLiteDriver.withSchema(schema: SqlSchema<QueryResult.AsyncValue<Unit>>? = null): SQLiteDriver =
     this.also { schema?.create(it)?.await() }
 
+private val readQuery = Regex("""^\s*(SELECT|WITH)\b""", RegexOption.IGNORE_CASE)
+private val writeKeyword = Regex("""\b(INSERT|UPDATE|DELETE|REPLACE)\b""", RegexOption.IGNORE_CASE)
+
+/** Conservative, anything that might write stays on the writer connection. */
+private fun String.isRead() = readQuery.containsMatchIn(this) && !writeKeyword.containsMatchIn(this)
+
 /**
  * Asynchronous SQLDelight driver on top of a [SQLiteConnection] provided by a backend module.
  * @param beginImmediate start transactions with `BEGIN IMMEDIATE` instead of `BEGIN TRANSACTION`
+ * @param readers extra connections to the same database file in WAL mode, `SELECT` queries outside a transaction
+ * go to the least busy one, everything else to [connection]; since 1.1.0
  */
 class SQLiteDriver(
     private val connection: SQLiteConnection,
     private val beginImmediate: Boolean = false,
+    readers: List<SQLiteConnection> = emptyList(),
 ) : SqlDriver {
+    private class Reader(val connection: SQLiteConnection) {
+        var running = 0
+    }
+
+    private val readers = readers.map(::Reader).toMutableList()
     private val listeners = mutableMapOf<String, MutableSet<Query.Listener>>()
     private var transaction: Transaction? = null
     private var closed = false
@@ -83,9 +97,11 @@ class SQLiteDriver(
         parameters: Int,
         binders: (SqlPreparedStatement.() -> Unit)?
     ): QueryResult<R> = QueryResult.AsyncValue {
+        val reader = if (transaction == null && sql.isRead()) readers.minByOrNull { it.running } else null
+        reader?.let { it.running++ }
         var statement: SQLiteStatement? = null
         val cursor = SQLiteCursor {
-            createOrGetStatement(identifier, sql).also {
+            (reader?.connection?.prepare(sql) ?: createOrGetStatement(identifier, sql)).also {
                 statement = it
                 it.bindAll(parameters, binders)
             }
@@ -94,6 +110,7 @@ class SQLiteDriver(
             mapper(cursor).await()
         } finally {
             statement?.release()
+            reader?.let { it.running-- }
         }
     }
 
@@ -141,7 +158,7 @@ class SQLiteDriver(
     override fun close() {
         if (closed) return
         closed = true
-        suspend { connection.close() }.startCoroutine(Continuation(EmptyCoroutineContext) { result ->
+        suspend { closeConnections() }.startCoroutine(Continuation(EmptyCoroutineContext) { result ->
             result.onFailure {
                 closed = false
                 console.error(it)
@@ -158,11 +175,23 @@ class SQLiteDriver(
         if (closed) return
         closed = true
         try {
-            connection.close()
+            closeConnections()
         } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
             closed = false
             throw e
         }
+    }
+
+    /**
+     * Readers go first, the last connection to close checkpoints and removes the WAL file.
+     * Closed readers are dropped, so a failed close can be retried.
+     */
+    private suspend fun closeConnections() {
+        while (readers.isNotEmpty()) {
+            readers.first().connection.close()
+            readers.removeAt(0)
+        }
+        connection.close()
     }
 
     private suspend fun SQLiteStatement.bindAll(
