@@ -35,6 +35,6 @@ jobs:
           post-pr-comment: true
           use-annotations: true
           # Upload Qodana results (SARIF, other artifacts, logs) as an artifact to the job
-          upload-result: false
+          upload-result: true
           # quick-fixes available in Ultimate and Ultimate Plus plans
           push-fixes: 'none'
