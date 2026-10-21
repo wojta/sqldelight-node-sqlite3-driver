@@ -103,6 +103,8 @@ suspend fun main() {
 
     val player = HockeyPlayer(20, "Ronald McDonald")
     playerQueries.insertFullPlayerObject(player)
+
+    driver.close()
 }
 ```
 
@@ -117,8 +119,18 @@ Init function per backend:
 Note: Please use `awaitAsList()` or `executeAsFlow()` in queries instead of `executeAsList()`
 as that API is not suspending and will throw an exception with this driver.
 
-The API is asynchronous for all backends. `node:sqlite` and `better-sqlite3` are synchronous underneath,
-so their calls block the event loop for the time the query runs.
+The API is asynchronous for all backends. `sqlite3` runs queries on libuv threads by itself. `node:sqlite` and
+`better-sqlite3` are synchronous, so each driver opens its connection in own `node:worker_threads` thread with
+[worker](https://github.com/nst-cloud/worker) library and queries don't block the event loop. Rows come back over
+`MessagePort` by structured clone, there is no serialization step.
+
+### Worker thread requirements
+
+For `node:sqlite` and `better-sqlite3`:
+
+* the thread imports module file of the backend, so the build has to produce ES modules (`useEsModules()`) with
+  default per-module output, not whole-program one and not a bundle
+* always `close()` the driver, open worker thread keeps the Node.js process running
 
 ## Upgrade from 0.9.x to 1.0.0
 
@@ -164,7 +176,7 @@ Same steps 1 and 2, only with `node-sqlite-driver-node-sqlite-js` or `node-sqlit
 * drop `sqlite3BindingsInstall` task and `ignoreScripts` setting, none of them is needed
 * `node:sqlite` needs Node.js 24 or newer, check `nodejs` version in your Gradle set up
 * existing database files work as they are, all three backends use same SQLite file format
-* see [Limitations](#limitations) about two connections to same file
+* see [Worker thread requirements](#worker-thread-requirements)
 
 ### Other changes
 
@@ -179,8 +191,6 @@ Same steps 1 and 2, only with `node-sqlite-driver-node-sqlite-js` or `node-sqlit
 * `Long` (SQLite `INTEGER`) columns round-trip exactly only up to `2^53` (JS's safe integer
   range), because binding and reading a value both pass through a JS `Number`. Binding or reading
   a value beyond `2^53` throws `SQLiteException` instead of silently losing precision. Same for all backends.
-* With synchronous backends two connections in same process can't wait for each other's lock, busy timeout
-  blocks the event loop and the other connection never gets to commit. Use one connection per database file there.
 
 ## Transactions
 
