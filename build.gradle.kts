@@ -3,7 +3,7 @@ plugins {
 }
 
 val defaultGroupId = "cz.sazel.sqldelight"
-val versionBase = "1.0.0"
+val versionBase = "1.1.0"
 
 val packageVersion = (System.getenv("PACKAGE_VERSION")?.trim()?.ifBlank { null }
     ?: localProperty("packageVersion") ?: "$versionBase-SNAPSHOT").removePrefix("v")
