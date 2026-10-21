@@ -14,6 +14,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 import kotlin.test.*
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val SQLITE_BUSY = 5
 
@@ -330,7 +331,7 @@ abstract class SQLiteDriverTest {
             schema.awaitCreate(driver)
         }
         assertContains(error.toString(), "table test already exists")
-        assertEquals(error.errorNumber, 1)
+        assertEquals(1, error.errorNumber)
     }
 
     @Test
@@ -473,7 +474,7 @@ abstract class SQLiteDriverTest {
             driver1.execute(3, "INSERT INTO t VALUES (1)", 0).await()
 
             val driver2Tx = async { driver2.newTransaction().await() }
-            delay(100)
+            delay(100.milliseconds)
             driver1._endTransactionForTests(true)?.await()
 
             assertNotNull(driver2Tx.await())
