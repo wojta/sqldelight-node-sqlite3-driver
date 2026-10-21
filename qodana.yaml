@@ -27,6 +27,7 @@ projectJDK: "19" #(Applied in CI/CD pipeline)
 
 #Execute shell command before Qodana execution (Applied in CI/CD pipeline)
 #bootstrap: sh ./prepare-qodana.sh
+bootstrap: ./gradlew generateSqlDelightInterface
 
 #Install IDE plugins before Qodana execution (Applied in CI/CD pipeline)
 #plugins:
