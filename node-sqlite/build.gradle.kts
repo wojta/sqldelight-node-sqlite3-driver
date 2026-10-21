@@ -9,6 +9,7 @@ kotlin {
     sourceSets {
         jsMain.dependencies {
             implementation(project(":core"))
+            implementation(libs.nst.worker)
         }
         jsTest.dependencies {
             implementation(project(":driver-test"))

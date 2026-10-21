@@ -10,6 +10,8 @@ import cz.sazel.sqldelight.node.sqlite.InternalSQLiteDriverApi
 import cz.sazel.sqldelight.node.sqlite.SQLiteDriver
 import cz.sazel.sqldelight.node.sqlite.SQLiteException
 import cz.sazel.sqldelight.node.sqlite.SQLiteJsException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlin.random.Random
 import kotlin.test.*
 
@@ -422,8 +424,7 @@ abstract class SQLiteDriverTest {
     }
 
     /**
-     * Synchronous backends block the event loop while waiting for a lock, so the second connection
-     * gets no busy timeout here; SQLITE_BUSY from BEGIN itself shows the write lock is taken up front.
+     * The second connection gets no busy timeout, SQLITE_BUSY from BEGIN itself shows the write lock is taken up front.
      */
     @Test
     fun begin_immediate_takes_write_lock_at_begin() = kotlinx.coroutines.test.runTest {
@@ -452,6 +453,59 @@ abstract class SQLiteDriverTest {
         }
     }
 
+    /**
+     * Each connection waits for the busy timeout on its own thread, so the other one can finish its transaction meanwhile.
+     */
+    @Test
+    fun begin_immediate_waits_for_busy_timeout_instead_of_failing_on_lock_upgrade() = kotlinx.coroutines.test.runTest {
+        val file = "test_begin_immediate.db"
+        deleteIfExists(file)
+        try {
+            val driver1 = createDriver(file, beginImmediate = true)
+            driver1.executeQuery(0, "PRAGMA journal_mode=WAL", { QueryResult.AsyncValue { it.next().await() } }, 0).await()
+            driver1.executeQuery(1, "PRAGMA busy_timeout=3000", { QueryResult.AsyncValue { it.next().await() } }, 0).await()
+            driver1.execute(2, "CREATE TABLE t (id INTEGER)", 0).await()
+
+            val driver2 = createDriver(file, beginImmediate = true)
+            driver2.executeQuery(0, "PRAGMA busy_timeout=3000", { QueryResult.AsyncValue { it.next().await() } }, 0).await()
+
+            driver1.newTransaction().await()
+            driver1.execute(3, "INSERT INTO t VALUES (1)", 0).await()
+
+            val driver2Tx = async { driver2.newTransaction().await() }
+            delay(100)
+            driver1._endTransactionForTests(true)?.await()
+
+            assertNotNull(driver2Tx.await())
+            driver2._endTransactionForTests(true)?.await()
+
+            driver1.closeSuspending()
+            driver2.closeSuspending()
+        } finally {
+            listOf(file, "$file-wal", "$file-shm").forEach(::deleteIfExists)
+        }
+    }
+
+    @Test
+    fun long_query_does_not_block_event_loop() = runTest { driver ->
+        var ticks = 0
+        val timer = setInterval({ ticks++ }, 1)
+        try {
+            driver.awaitQuery(
+                800,
+                "WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c WHERE x < 2000000) SELECT count(*) FROM c",
+                { cursor ->
+                    assertTrue(cursor.next().await())
+                    assertEquals(2000000L, cursor.getLong(0))
+                },
+                0,
+            )
+        } finally {
+            clearInterval(timer)
+        }
+        assertTrue(ticks > 0, "timer never fired while the query ran")
+    }
+
     @Test
     fun closeSuspending_checkpoints_wal_and_is_idempotent() = kotlinx.coroutines.test.runTest {
         val file = "close-wal-test.db"
@@ -473,3 +527,9 @@ abstract class SQLiteDriverTest {
         }
     }
 }
+
+@Suppress("UnusedParameter")
+private external fun setInterval(handler: () -> Unit, timeout: Int): dynamic
+
+@Suppress("UnusedParameter")
+private external fun clearInterval(handle: dynamic)
