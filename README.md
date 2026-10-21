@@ -119,72 +119,13 @@ Init function per backend:
 Note: Please use `awaitAsList()` or `executeAsFlow()` in queries instead of `executeAsList()`
 as that API is not suspending and will throw an exception with this driver.
 
-The API is asynchronous for all backends. `sqlite3` runs queries on libuv threads by itself. `node:sqlite` and
-`better-sqlite3` are synchronous, so each driver opens its connection in own `node:worker_threads` thread with
-[worker](https://github.com/nst-cloud/worker) library and queries don't block the event loop. Rows come back over
-`MessagePort` by structured clone, there is no serialization step.
+The API is asynchronous for all backends. `sqlite3` runs queries on libuv threads by itself, `node:sqlite` and
+`better-sqlite3` run them in a worker thread. That one has some build requirements and option for parallel reads,
+see [Worker threads](docs/worker-threads.md).
 
-### Worker thread requirements
+## Upgrade from 0.9.x
 
-For `node:sqlite` and `better-sqlite3`:
-
-* the thread imports module file of the backend, so the build has to produce ES modules (`useEsModules()`) with
-  default per-module output, not whole-program one and not a bundle
-* always `close()` the driver, open worker thread keeps the Node.js process running
-
-## Upgrade from 0.9.x to 1.0.0
-
-Up to 0.9.x the driver was single artifact `node-sqlite3-driver-js` for `sqlite3` only. In 1.0.0 it is split into
-core and three backends, so the old artifact gets no more releases.
-
-### Keep `sqlite3`
-
-1. Replace the dependency:
-
-   ```kotlin
-   // before
-   implementation("cz.sazel.sqldelight:node-sqlite3-driver-js:0.9.0")
-
-   // after
-   implementation("cz.sazel.sqldelight:node-sqlite-driver-core-js:1.0.0")
-   implementation("cz.sazel.sqldelight:node-sqlite-driver-sqlite3-js:1.0.0")
-   ```
-
-   Core has to be added explicitly, backend doesn't bring it to your compile classpath.
-
-2. Fix imports. These moved from `cz.sazel.sqldelight.node.sqlite3` to `cz.sazel.sqldelight.node.sqlite` and
-   dropped `3` from the name:
-
-   | Before                                                  | After                                                 |
-   |---------------------------------------------------------|-------------------------------------------------------|
-   | `cz.sazel.sqldelight.node.sqlite3.SQLite3Driver`        | `cz.sazel.sqldelight.node.sqlite.SQLiteDriver`        |
-   | `cz.sazel.sqldelight.node.sqlite3.SQLite3Exception`     | `cz.sazel.sqldelight.node.sqlite.SQLiteException`     |
-   | `cz.sazel.sqldelight.node.sqlite3.SQLite3JsException`   | `cz.sazel.sqldelight.node.sqlite.SQLiteJsException`   |
-   | `cz.sazel.sqldelight.node.sqlite3.executeAsFlow`        | `cz.sazel.sqldelight.node.sqlite.executeAsFlow`       |
-
-   `initSqlite3SqlDriver` stays in `cz.sazel.sqldelight.node.sqlite3` with the same parameters.
-
-3. Replace `sqlite3BindingsInstall` task with `ignoreScripts` setting from
-   [Install scripts for `sqlite3`](#install-scripts-for-sqlite3). The task still works if you keep it.
-
-### Switch to `node:sqlite` or `better-sqlite3`
-
-Same steps 1 and 2, only with `node-sqlite-driver-node-sqlite-js` or `node-sqlite-driver-better-sqlite3-js`, and:
-
-* call `initNodeSqliteSqlDriver` / `initBetterSqlite3SqlDriver` instead of `initSqlite3SqlDriver`, there is no
-  `mode` parameter, file is always opened for read and write and created when missing
-* drop `sqlite3BindingsInstall` task and `ignoreScripts` setting, none of them is needed
-* `node:sqlite` needs Node.js 24 or newer, check `nodejs` version in your Gradle set up
-* existing database files work as they are, all three backends use same SQLite file format
-* see [Worker thread requirements](#worker-thread-requirements)
-
-### Other changes
-
-* `SQLiteJsException.errorNumber` is still SQLite primary result code, now for all backends
-* `close()` logs failures to `console.error` as `SQLiteJsException`, not as raw JS error
-* when `BEGIN` fails (e.g. `SQLITE_BUSY`), the driver no longer stays in a broken transaction, next call can
-  start new one
-* test database classes from package `cz.sazel.sqldelight._dont_use` aren't shipped in the library anymore
+Artifacts and some package names changed in 1.0.0, steps are in [Upgrade from 0.9.x to 1.0.0](docs/upgrade-1.0.md).
 
 ## Limitations
 
