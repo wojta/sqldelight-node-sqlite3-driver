@@ -56,8 +56,8 @@ kotlin {
     }
     sourceSets {
         jsMain.dependencies {
-            implementation("cz.sazel.sqldelight:node-sqlite-driver-core-js:1.0.0")
-            implementation("cz.sazel.sqldelight:node-sqlite-driver-node-sqlite-js:1.0.0")
+            implementation("cz.sazel.sqldelight:node-sqlite-driver-core-js:1.1.0")
+            implementation("cz.sazel.sqldelight:node-sqlite-driver-node-sqlite-js:1.1.0")
             // or node-sqlite-driver-better-sqlite3-js / node-sqlite-driver-sqlite3-js
         }
     }
