@@ -178,6 +178,23 @@ abstract class DriverWithLibraryTest {
         assertEquals(3, playerQueries.selectAll().executeAsFlow().take(3).toList().size)
     }
 
+    /**
+     * A statement cached by the transaction and left in the middle of its rows has to be reset before
+     * the next statement runs, better-sqlite3 refuses to run anything while an iterator is open. More rows than one
+     * worker batch keep the iterator open. Re-running the same statement has to start from the first row again.
+     */
+    @Test
+    fun testPartialReadInTransactionDoesNotBlockNextStatements() = withDatabase {
+        val insertedPlayers = (0..299).map { HockeyPlayer(player_number = 1000L + it, full_name = "Busy $it") }
+        transaction {
+            insertedPlayers.forEach { playerQueries.insertFullPlayerObject(it) }
+            assertEquals(3, playerQueries.selectAll().executeAsFlow().take(3).toList().size)
+            playerQueries.deletePlayer(initialPlayer.player_number)
+            assertEquals(insertedPlayers.size, playerQueries.selectAll().awaitAsList().size)
+            assertEquals(insertedPlayers.size, playerQueries.selectAll().awaitAsList().size)
+        }
+    }
+
     @Test
     fun testSelectWithLimit() = withDatabase {
         val insertedPlayers = (0..100).map { HockeyPlayer(player_number = 100L + it, full_name = "Player $it") }
