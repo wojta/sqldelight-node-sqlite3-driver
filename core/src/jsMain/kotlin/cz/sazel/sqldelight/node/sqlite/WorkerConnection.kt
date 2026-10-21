@@ -9,6 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -46,6 +47,40 @@ suspend fun openWorkerConnection(taskName: String, registrarModule: String, file
     }
     return connection
 }
+
+/**
+ * Opens a [SQLiteDriver] with a writer and [readers] reader connections, each by [openWorkerConnection].
+ * Readers need WAL, so the writer switches the database file to it first.
+ * @since 1.1.0
+ */
+@InternalSQLiteDriverApi
+suspend fun openWorkerDriver(
+    taskName: String,
+    registrarModule: String,
+    filename: String,
+    beginImmediate: Boolean,
+    readers: Int,
+): SQLiteDriver {
+    require(readers >= 0) { "readers must not be negative" }
+    require(readers == 0 || !filename.isInMemory()) {
+        "readers need a database file, in-memory databases are separate per connection"
+    }
+    val writer = openWorkerConnection(taskName, registrarModule, filename)
+    val opened = mutableListOf<SQLiteConnection>()
+    try {
+        if (readers > 0) writer.exec("PRAGMA journal_mode=WAL")
+        coroutineScope {
+            repeat(readers) { launch { opened += openWorkerConnection(taskName, registrarModule, filename) } }
+        }
+    } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
+        (opened + writer).forEach { runCatching { it.close() } }
+        throw e
+    }
+    return SQLiteDriver(writer, beginImmediate, opened)
+}
+
+private fun String.isInMemory() =
+    isEmpty() || this == ":memory:" || startsWith("file::memory:") || "mode=memory" in this
 
 /**
  * Worker side of [openWorkerConnection]: opens the connection with [open] and serves requests

@@ -7,7 +7,7 @@ import cz.sazel.sqldelight.node.sqlite.InternalSQLiteDriverApi
 import cz.sazel.sqldelight.node.sqlite.SQLiteConnectionTask
 import cz.sazel.sqldelight.node.sqlite.SQLiteDriver
 import cz.sazel.sqldelight.node.sqlite.betterSqlite3.externals.newBetterSqlite3Database
-import cz.sazel.sqldelight.node.sqlite.openWorkerConnection
+import cz.sazel.sqldelight.node.sqlite.openWorkerDriver
 import cz.sazel.sqldelight.node.sqlite.withSchema
 
 private const val TASK_NAME = "cz.sazel.sqldelight.better-sqlite3"
@@ -26,11 +26,13 @@ private val registration: Unit = TaskRegistry.register(TASK_NAME) {
  * Opens [filename] with the `better-sqlite3` Node.js module, in its own worker thread.
  * @param schema created right after opening when given
  * @param beginImmediate start transactions with `BEGIN IMMEDIATE`
+ * @param readers extra connections for `SELECT` queries outside transactions, each in its own worker thread, so
+ * reads run in parallel; switches the database to WAL, needs a database file; since 1.1.0
  */
 @OptIn(InternalSQLiteDriverApi::class)
 suspend fun initBetterSqlite3SqlDriver(
     filename: String,
     schema: SqlSchema<QueryResult.AsyncValue<Unit>>? = null,
     beginImmediate: Boolean = false,
-): SQLiteDriver =
-    SQLiteDriver(openWorkerConnection(TASK_NAME, moduleUrl, filename), beginImmediate).withSchema(schema)
+    readers: Int = 0,
+): SQLiteDriver = openWorkerDriver(TASK_NAME, moduleUrl, filename, beginImmediate, readers).withSchema(schema)
