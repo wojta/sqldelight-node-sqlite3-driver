@@ -1,5 +1,6 @@
 ![BUILD](https://github.com/wojta/sqldelight-node-sqlite3-driver/actions/workflows/build.yml/badge.svg) [![stability-beta](https://img.shields.io/badge/stability-beta-33bbff.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#beta)
-[![Maven Central](https://img.shields.io/maven-central/v/cloud.nst/worker?color=blue)](https://central.sonatype.com/artifact/cloud.nst/worker)
+[![Maven Central](https://img.shields.io/maven-central/v/cz.sazel.sqldelight/node-sqlite-driver-core-js?color=blue)](https://central.sonatype.com/artifact/cz.sazel.sqldelight/node-sqlite-driver-core-js)
+
 
 # sqldelight-node-sqlite-driver
 
